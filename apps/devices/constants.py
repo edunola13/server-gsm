@@ -1,0 +1,79 @@
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
+ORIGIN_API = 'API'
+ORIGIN_RULE = 'RULE'
+ORIGIN_DEV = 'DEV'
+ORIGIN_CHOICES = (
+    (ORIGIN_API, 'Api'),
+    (ORIGIN_RULE, 'Rule'),
+    (ORIGIN_DEV, 'Device'),
+)
+
+STATUS_INI = 'INI'
+STATUS_ERR = 'ERR'
+STATUS_CON = 'CON'
+STATUS_NO_CON = 'NO_CON'
+STATUS_CHOICES = (
+    (STATUS_INI, 'Inicial'),
+    (STATUS_ERR, 'Error'),
+    (STATUS_CON, 'Conectado'),
+    (STATUS_NO_CON, 'Desconectado'),
+)
+
+CHIP_STATUS_FREE = 'FREE'
+CHIP_STATUS_CAL = 'CAL'
+CHIP_STATUS_IN_CALL = 'IN_CAL'
+CHIP_STATUS_ERR = 'ERR'
+CHIP_STATUS_CHOICES = (
+    (CHIP_STATUS_FREE, 'Libre'),
+    (CHIP_STATUS_CAL, 'Llamando'),
+    (CHIP_STATUS_IN_CALL, 'En llamada'),
+    (CHIP_STATUS_ERR, 'Error'),
+)
+
+RULE_TYPE_DEFAULT = 'DEF'
+RULE_TYPE_CHOICES = (
+    (RULE_TYPE_DEFAULT, 'Default'),
+)
+
+RULE_FROM_TYPE_CALL = 'CALL'
+RULE_FROM_TYPE_SMS = 'SMS'
+RULE_FROM_TYPE_API = 'API'
+RULE_FROM_TYPE_CHOICES = (
+    (RULE_FROM_TYPE_CALL, 'CALL'),
+    (RULE_FROM_TYPE_SMS, 'SMS'),
+    (RULE_FROM_TYPE_API, 'API'),
+)
+
+RULE_TO_TYPE_CALL = 'CALL'
+RULE_TO_TYPE_SMS = 'SMS'
+RULE_TO_TYPE_CHOICES = (
+    (RULE_TO_TYPE_CALL, 'CALL'),
+    (RULE_TO_TYPE_SMS, 'SMS'),
+)
+
+RULE_STATUS_OK = 'OK'
+RULE_STATUS_ERR = 'ERR'
+RULE_STATUS_CHOICES = (
+    (RULE_STATUS_OK, 'Ok'),
+    (RULE_STATUS_ERR, 'Error'),
+)
+
+LOG_TYPE_STATUS = 'STATUS'
+LOG_TYPE_CALL = 'CALL'
+LOG_TYPE_SMS = 'SMS'
+LOG_TYPE_CHOICES = (
+    (LOG_TYPE_STATUS, 'Estado'),
+    (LOG_TYPE_CALL, 'CALL'),
+    (LOG_TYPE_SMS, 'SMS'),
+)
+
+LOG_STATUS_INI = 'INI'
+LOG_STATUS_OK = 'OK'
+LOG_STATUS_ERR = 'ERR'
+LOG_STATUS_CHOICES = (
+    (LOG_STATUS_INI, 'Inicial'),
+    (LOG_STATUS_OK, 'Ok'),
+    (LOG_STATUS_ERR, 'Error'),
+)

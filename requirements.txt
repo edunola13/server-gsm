@@ -1,0 +1,17 @@
+#Django y Django Rest
+Django>=2.0.6
+django-filter>=1.1.0
+djangorestframework>=3.7.7
+djangorestframework-jwt>=1.11.0
+#Requerida por djangorestframework-jwt. La trae sin declararla aca pero esta bueno saber que la usa
+PyJWT>=1.6.4
+
+django-cors-headers>=2.4.0
+
+django-rest-swagger
+
+psycopg2
+psycopg2-binary==2.7.5
+
+celery>=4.1.1
+redis>=3.3.7
