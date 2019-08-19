@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # [pi] byte = bus.read_byte(address) -> [arduino] Wire.onRequest(handler)
-import smbus as smbus
+import smbus2 as smbus
 import json
 import time
 
@@ -13,7 +13,7 @@ class I2CClient():
         self.address = address
 
     def __read(self, action):
-        return self.bus.read_i2c_block_data(self.address, action)
+        return self.bus.read_i2c_block_data(self.address, action, 32)
 
     def __write(self, action, data):
         return self.bus.write_i2c_block_data(self.address, action, data)

@@ -170,8 +170,8 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULE = {
     'device-1': {
         'task': 'apps.devices.tasks.update_status',
-        'schedule': 30.0,  # 30 seconds
-        'args': (1)  # ID of device
+        'schedule': 15.0,  # 15 seconds
+        'args': (1,)  # ID of device
     }
 }
 
