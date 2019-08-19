@@ -9,5 +9,5 @@ env
 !.gitignore
 !.travis.yml
 
-/biometrico-api/secrets.py
-/biometrico-api/local_settings.py
+/server/secrets.py
+/server/local_settings.py
