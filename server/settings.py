@@ -14,6 +14,8 @@ import os
 import datetime
 from .secrets import APP_KEY
 
+from celery.schedules import crontab
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -159,12 +161,19 @@ SECRET_KEY = APP_KEY
 
 # CELERY STUFF - WITH
 CELERY_BROKER_URL = 'redis://localhost:6379'
-BROKER_URL = 'redis://localhost:6379'
+# BROKER_URL = 'redis://localhost:6379'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379'
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    'device-1': {
+        'task': 'apps.devices.tasks.update_status',
+        'schedule': 30.0,  # 30 seconds
+        'args': (1)  # ID of device
+    }
+}
 
 # Incorporo las configuraciones locales - Las que hay que modificar por ambiente
 from .local_settings import *

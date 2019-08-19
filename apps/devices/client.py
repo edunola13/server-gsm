@@ -46,7 +46,7 @@ class I2CClient():
         data_bytes = list(self.__divide_chunks(data_bytes, 29))
         of = len(data_bytes)
         for i in range(of):
-            part = i
+            part = i + 1
             data = [part, of] + data_bytes[i]
             self.write(action, data)
             time.sleep(0.5)  # Seconds
@@ -77,7 +77,7 @@ class GSMClient(I2CClient):
     def get_status(self):
         self.send(self.ACTION_GET_STA, '')
         time.sleep(1)
-        return self.receice(self.GENERIC_WRITE, self.GENERIC_READ)
+        return self.long_receice(self.GENERIC_WRITE, self.GENERIC_READ)
 
     def make_call(self, number):
         body = json.dumps({'n': number}, separators=(',', ':'))
@@ -109,7 +109,7 @@ class GSMClient(I2CClient):
             separators=(',', ':'))
         self.send(self.ACTION_GET_SMS, body)
         time.sleep(5)
-        return self.receice(self.GENERIC_WRITE, self.GENERIC_READ)
+        return self.long_receice(self.GENERIC_WRITE, self.GENERIC_READ)
 
     def delete_smss(self, number):
         self.send(self.ACTION_DEL_SMS, '')
@@ -119,4 +119,4 @@ class GSMClient(I2CClient):
     def get_localization(self):
         self.send(self.ACTION_GET_LOC, '')
         time.sleep(60)
-        return self.receice(self.GENERIC_WRITE, self.GENERIC_READ)
+        return self.long_receice(self.GENERIC_WRITE, self.GENERIC_READ)
