@@ -43,7 +43,7 @@ class I2CClient():
 
     def send(self, action, body):
         data_bytes = list(body.encode())
-        data_bytes = list(self.divide_chunks(data_bytes, 29))
+        data_bytes = list(self.__divide_chunks(data_bytes, 29))
         of = len(data_bytes)
         for i in range(of):
             part = i
