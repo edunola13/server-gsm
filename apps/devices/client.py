@@ -35,21 +35,36 @@ class I2CClient():
             time.sleep(0.5)  # Seconds
             data = self.__read(actionRead)
             body += data[2:]
-        return body
+        body_str = ""
+        for byte in body:
+            if byte == 255:
+                break
+            body_str += chr(byte)
+        return body_str
 
     def receice(self, action):
         data = self.__read(action)
-        return data[2:]
+        data = data[2:]
+        body = ""
+        for byte in data:
+            if byte == 255:
+                break
+            body += chr(byte)
+        return body
 
     def send(self, action, body):
         data_bytes = list(body.encode())
         data_bytes = list(self.__divide_chunks(data_bytes, 29))
         of = len(data_bytes)
-        for i in range(of):
-            part = i + 1
-            data = [part, of] + data_bytes[i]
-            self.write(action, data)
-            time.sleep(0.5)  # Seconds
+        if of == 0:
+            self.__write(action, [1, 1])
+        else:
+            of += 1
+            for i in range(of):
+                part = i + 1
+                data = [part, of] + data_bytes[i]
+                self.__write(action, data)
+                time.sleep(0.5)  # Seconds
 
 
 class GSMClient(I2CClient):
