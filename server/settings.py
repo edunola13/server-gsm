@@ -171,7 +171,12 @@ CELERY_BEAT_SCHEDULE = {
     'device-1': {
         'task': 'apps.devices.tasks.update_status',
         'schedule': 15.0,  # 15 seconds
-        'args': (1,)  # ID of device
+        'args': (4,)  # ID of device
+    },
+    'device-2': {
+        'task': 'apps.devices.tasks.update_status',
+        'schedule': 15.0,
+        'args': (5,)
     }
 }
 

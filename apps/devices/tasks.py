@@ -9,7 +9,7 @@ from apps.devices.client import GSMClient
 def update_status(id):
     print ("Por Aqui Voy")
     try:
-        gsm = GSMClient(4)
+        gsm = GSMClient(id)
         status = gsm.get_status()
         print (status)
     except Exception as e:
