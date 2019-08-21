@@ -59,10 +59,13 @@ class I2CClient():
         if of == 0:
             self.__write(action, [1, 1])
         else:
-            of += 1
-            for i in range(of):
-                part = i + 1
-                data = [part, of] + data_bytes[i]
+            #of += 1
+            print (of)
+            print (data_bytes)
+            part = 0
+            for data_b in data_bytes:
+                part += 1
+                data = [part, of] + data_b
                 self.__write(action, data)
                 time.sleep(0.5)  # Seconds
 
@@ -100,12 +103,12 @@ class GSMClient(I2CClient):
         time.sleep(5)
         return self.receice(self.RESPONSE_CALL)
 
-    def answer_call(self, number):
+    def answer_call(self):
         self.send(self.ACTION_ANSWER, '')
         time.sleep(5)
         return self.receice(self.RESPONSE_ANSWER)
 
-    def hangoff_call(self, number):
+    def hangoff_call(self):
         self.send(self.ACTION_HANGOFF, '')
         time.sleep(5)
         return self.receice(self.RESPONSE_HANGOFF)
@@ -126,7 +129,7 @@ class GSMClient(I2CClient):
         time.sleep(5)
         return self.long_receice(self.GENERIC_WRITE, self.GENERIC_READ)
 
-    def delete_smss(self, number):
+    def delete_sms(self):
         self.send(self.ACTION_DEL_SMS, '')
         time.sleep(20)
         return self.receice(self.RESPONSE_HANGOFF)
