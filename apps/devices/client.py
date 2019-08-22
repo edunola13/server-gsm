@@ -11,6 +11,7 @@ class TooManyAttempt(Exception):
 
 
 class I2CClient():
+    MAX_PARTS_BODY = 10
 
     def __init__(self, address):
         # for RPI version 1, use "bus = smbus.SMBus(0)"
@@ -61,35 +62,14 @@ class I2CClient():
         part, of, body_str = self.__part_receive(
             action_write, action_read, 1, 1,
             attempt, interval)
-        while part != of:
-            print (part)
-            print (of)
-            print ()
+        i = 1
+        while part != of and i <= self.MAX_PARTS_BODY:
             part += 1
             part, of, body = self.__part_receive(
                 action_write, action_read, part, of, attempt, interval)
             body_str += body
-        # body_str = ""
+            i += 1
         return json.loads(body_str.replace('\x00', ''), strict=False)
-
-    # def long_receive(self, actionWrite, actionRead):
-    #     self.__write(actionWrite, [1, 1])
-    #     time.sleep(0.5)  # Seconds
-    #     data = self.__read(actionRead)
-    #     part, of = data[:2]
-    #     body = data[2:]
-    #     while part != of:
-    #         part += 1
-    #         self.__write(actionWrite, [part, of])
-    #         time.sleep(0.5)  # Seconds
-    #         data = self.__read(actionRead)
-    #         body += data[2:]
-    #     body_str = ""
-    #     for byte in body:
-    #         if byte == 255:
-    #             break
-    #         body_str += chr(byte)
-    #     return json.loads(body_str.replace('\x00', ''), strict=False)
 
     def receive(self, action, attempt=10, interval=0.25):
         n = 1
@@ -184,7 +164,7 @@ class GSMClient(I2CClient):
             {'i': index},
             separators=(',', ':'))
         self.send(self.ACTION_GET_SMS, body)
-        time.sleep(2)
+        time.sleep(2.5)
         return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ, 20)
 
     def delete_sms(self):
