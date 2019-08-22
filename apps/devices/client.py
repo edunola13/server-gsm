@@ -5,6 +5,11 @@ import json
 import time
 
 
+class TooManyAttempt(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
 class I2CClient():
 
     def __init__(self, address):
@@ -23,34 +28,81 @@ class I2CClient():
         for i in range(0, len(l), n):
             yield l[i:i + n]
 
-    def long_receice(self, actionWrite, actionRead):
-        self.__write(actionWrite, [1, 1])
-        time.sleep(0.5)  # Seconds
-        data = self.__read(actionRead)
-        part, of = data[:2]
-        body = data[2:]
+    def __part_receive(self, action_write, action_read,
+                       part, of, attempt=10, interval=0.25):
+        self.__write(action_write, [part, of])
+        time.sleep(0.2)  # Seconds
+        n = 1
+        while n <= attempt:
+            data = self.__read(action_read)
+            part, of = data[:2]
+            data = data[2:]
+            body = ""
+            for byte in data:
+                if byte == 255:
+                    break
+                body += chr(byte)
+            try:
+                json_data = json.loads(body.replace('\x00', ''), strict=False)
+                if 's' in json_data and json_data['s'] == 'no_end':
+                    n += 1
+                    time.sleep(interval)
+                    continue
+            except:
+                # No es una respuesta completa, eso quiere decir que esta bien
+                pass
+            return part, of, body
+        raise TooManyAttempt('Too many attempt waiting')
+
+    def long_receive(self, action_write, action_read,
+                     attempt=10, interval=0.25):
+        part, of, body_str = self.__part_receive(
+            action_write, action_read, 1, 1,
+            attempt, interval)
         while part != of:
             part += 1
-            self.__write(actionWrite, [part, of])
-            time.sleep(0.5)  # Seconds
-            data = self.__read(actionRead)
-            body += data[2:]
+            part, of, body = self.__part_receive(
+                action_write, action_read, 1, 1, attempt, interval)
+            body_str += body
         body_str = ""
-        for byte in body:
-            if byte == 255:
-                break
-            body_str += chr(byte)
         return json.loads(body_str.replace('\x00', ''), strict=False)
 
-    def receice(self, action):
-        data = self.__read(action)
-        data = data[2:]
-        body = ""
-        for byte in data:
-            if byte == 255:
-                break
-            body += chr(byte)
-        return json.loads(body.replace('\x00', ''), strict=False)
+    # def long_receive(self, actionWrite, actionRead):
+    #     self.__write(actionWrite, [1, 1])
+    #     time.sleep(0.5)  # Seconds
+    #     data = self.__read(actionRead)
+    #     part, of = data[:2]
+    #     body = data[2:]
+    #     while part != of:
+    #         part += 1
+    #         self.__write(actionWrite, [part, of])
+    #         time.sleep(0.5)  # Seconds
+    #         data = self.__read(actionRead)
+    #         body += data[2:]
+    #     body_str = ""
+    #     for byte in body:
+    #         if byte == 255:
+    #             break
+    #         body_str += chr(byte)
+    #     return json.loads(body_str.replace('\x00', ''), strict=False)
+
+    def receive(self, action, attempt=10, interval=0.25):
+        n = 1
+        while n <= attempt:
+            data = self.__read(action)
+            data = data[2:]
+            body = ""
+            for byte in data:
+                if byte == 255:
+                    break
+                body += chr(byte)
+            json_data = json.loads(body.replace('\x00', ''), strict=False)
+            if 's' in json_data and json_data['s'] == 'no_end':
+                n += 1
+                time.sleep(interval)
+                continue
+            return json_data
+        raise TooManyAttempt('Too many attempt waiting')
 
     def send(self, action, body):
         data_bytes = list(body.encode())
@@ -59,9 +111,6 @@ class I2CClient():
         if of == 0:
             self.__write(action, [1, 1])
         else:
-            #of += 1
-            print (of)
-            print (data_bytes)
             part = 0
             for data_b in data_bytes:
                 part += 1
@@ -94,47 +143,47 @@ class GSMClient(I2CClient):
 
     def get_status(self):
         self.send(self.ACTION_GET_STA, '')
-        time.sleep(1)
-        return self.long_receice(self.GENERIC_WRITE, self.GENERIC_READ)
+        time.sleep(0.5)
+        return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ)
 
     def make_call(self, number):
         body = json.dumps({'n': number}, separators=(',', ':'))
         self.send(self.ACTION_CALL, body)
-        time.sleep(5)
-        return self.receice(self.RESPONSE_CALL)
+        time.sleep(1)
+        return self.receive(self.RESPONSE_CALL)
 
     def answer_call(self):
         self.send(self.ACTION_ANSWER, '')
-        time.sleep(5)
-        return self.receice(self.RESPONSE_ANSWER)
+        time.sleep(1)
+        return self.receive(self.RESPONSE_ANSWER)
 
     def hangoff_call(self):
         self.send(self.ACTION_HANGOFF, '')
-        time.sleep(5)
-        return self.receice(self.RESPONSE_HANGOFF)
+        time.sleep(1)
+        return self.receive(self.RESPONSE_HANGOFF)
 
     def send_sms(self, number, msg):
         body = json.dumps(
             {'n': number, 'b': msg},
             separators=(',', ':'))
         self.send(self.ACTION_SEND_SMS, body)
-        time.sleep(20)
-        return self.receice(self.RESPONSE_SEND_SMS)
+        time.sleep(5)
+        return self.receive(self.RESPONSE_SEND_SMS, 20)
 
     def get_sms(self, index):
         body = json.dumps(
             {'i': index},
             separators=(',', ':'))
         self.send(self.ACTION_GET_SMS, body)
-        time.sleep(5)
-        return self.long_receice(self.GENERIC_WRITE, self.GENERIC_READ)
+        time.sleep(2)
+        return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ, 20)
 
     def delete_sms(self):
-        self.send(self.ACTION_DEL_SMS, '')
-        time.sleep(20)
-        return self.receice(self.RESPONSE_HANGOFF)
+        self.send(self.ACTION_DEL_SMS, '', 20)
+        time.sleep(10)
+        return self.receive(self.RESPONSE_HANGOFF)
 
     def get_localization(self):
         self.send(self.ACTION_GET_LOC, '')
         time.sleep(60)
-        return self.long_receice(self.GENERIC_WRITE, self.GENERIC_READ)
+        return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ)
