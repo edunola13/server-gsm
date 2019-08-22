@@ -49,6 +49,8 @@ class I2CClient():
                     time.sleep(interval)
                     continue
             except:
+                print ("Body:")
+                print (body)
                 # No es una respuesta completa, eso quiere decir que esta bien
                 pass
             return part, of, body
@@ -60,11 +62,14 @@ class I2CClient():
             action_write, action_read, 1, 1,
             attempt, interval)
         while part != of:
+            print (part)
+            print (of)
+            print ()
             part += 1
             part, of, body = self.__part_receive(
-                action_write, action_read, 1, 1, attempt, interval)
+                action_write, action_read, part, of, attempt, interval)
             body_str += body
-        body_str = ""
+        # body_str = ""
         return json.loads(body_str.replace('\x00', ''), strict=False)
 
     # def long_receive(self, actionWrite, actionRead):
@@ -96,12 +101,16 @@ class I2CClient():
                 if byte == 255:
                     break
                 body += chr(byte)
-            json_data = json.loads(body.replace('\x00', ''), strict=False)
-            if 's' in json_data and json_data['s'] == 'no_end':
-                n += 1
-                time.sleep(interval)
-                continue
-            return json_data
+            try:
+                json_data = json.loads(body.replace('\x00', ''), strict=False)
+                if 's' in json_data and json_data['s'] == 'no_end':
+                    n += 1
+                    time.sleep(interval)
+                    continue
+                return json_data
+            except:
+                print ("Error:")
+                print (body)
         raise TooManyAttempt('Too many attempt waiting')
 
     def send(self, action, body):
