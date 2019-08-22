@@ -40,7 +40,7 @@ class I2CClient():
             if byte == 255:
                 break
             body_str += chr(byte)
-        return body_str
+        return json.loads(body_str.replace('\x00', ''), strict=False)
 
     def receice(self, action):
         data = self.__read(action)
@@ -50,7 +50,7 @@ class I2CClient():
             if byte == 255:
                 break
             body += chr(byte)
-        return body
+        return json.loads(body.replace('\x00', ''), strict=False)
 
     def send(self, action, body):
         data_bytes = list(body.encode())
