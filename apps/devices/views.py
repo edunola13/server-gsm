@@ -8,11 +8,17 @@ from rest_framework.response import Response
 from rest_framework import serializers
 
 from rest_framework.permissions import IsAdminUser
+from server.exceptions import ConflictError
 
-from apps.devices.models import Device, LogDevice, LogAction, Rule, RuleInstance
-from apps.devices.serializers import (DeviceSerializer, LogDeviceSerializer, LogActionSerializer,
-                                      RuleSerializer, RuleInstanceSerializer)
+from apps.devices.models import (Device, LogDevice, LogAction,
+                                 Rule, RuleInstance)
+from apps.devices.serializers import (
+    DeviceSerializer, LogDeviceSerializer,
+    LogActionSerializer, LogActionUpdateSerializer,
+    RuleSerializer, RuleInstanceSerializer)
 from apps.devices.constants import ORIGIN_API
+
+from apps.devices.tasks import execute_action
 
 
 class DeviceViewSet(viewsets.ModelViewSet):
@@ -72,26 +78,84 @@ class LogDeviceViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
     ordering_fields = __basic_fields
     ordering = 'date_created'
 
+    @action(methods=['put'], detail=True)
+    def change_status(self, request, pk=None):
+        log = self.get_object()
+        if not log.can_update():
+            err = 'Invalid log device status'
+            raise ConflictError(detail=err)
+
+        status = request.data.get('status', None)
+        if status not in ['INI', 'CAN']:
+            raise serializers.ValidationError("Invalid log device status")
+
+        log.status = status
+        log.save()
+
+        serializer = LogDeviceSerializer(log)
+        return Response(serializer.data)
+
 
 class LogActionViewSet(viewsets.ModelViewSet):
-    permission_classes = (IsAdminUser,)
+    permission_classes = []  # (IsAdminUser,)
 
     queryset = LogAction.objects.all()
     serializer_class = LogActionSerializer
 
     __basic_fields = ('number',)
-    filter_fields = __basic_fields + ('origin', 'status', 'log_type', 'date_created')
+    filter_fields = __basic_fields + ('origin', 'status', 'log_type', 'created_at')
     search_fields = __basic_fields
     ordering_fields = __basic_fields
-    ordering = 'date_created'
+    ordering = 'created_at'
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return LogActionUpdateSerializer
+        return self.serializer_class
 
     def perform_create(self, serializer):
         serializer.save(origin=ORIGIN_API)
+        execute_action.apply_async([serializer.instance.id])
 
-    def perform_update(self, serializer):
-        if serializer.instance.origin != ORIGIN_API:
-            raise serializers.ValidationError({'error': 'No se puede editar una accion que no es de origen API'})
-        serializer.save()
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        serializer = LogActionSerializer(serializer.instance)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data,
+                        status=status.HTTP_201_CREATED,
+                        headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance,
+                                         data=request.data,
+                                         partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        serializer = LogActionSerializer(serializer.instance)
+        return Response(serializer.data)
+
+    @action(methods=['put'], detail=True)
+    def change_status(self, request, pk=None):
+        action = self.get_object()
+        if not action.can_update():
+            err = 'Invalid log action status'
+            raise ConflictError(detail=err)
+
+        status = request.data.get('status', None)
+        if status not in ['INI', 'CAN']:
+            raise serializers.ValidationError("Invalid log action status")
+
+        action.status = status
+        action.save()
+
+        serializer = LogActionSerializer(action)
+        return Response(serializer.data)
 
 
 class RuleViewSet(viewsets.ModelViewSet):

@@ -174,5 +174,5 @@ class GSMClient(I2CClient):
 
     def get_localization(self):
         self.send(self.ACTION_GET_LOC, '')
-        time.sleep(60)
+        time.sleep(30)
         return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ)

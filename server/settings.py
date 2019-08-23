@@ -171,13 +171,12 @@ CELERY_BEAT_SCHEDULE = {
     'device-1': {
         'task': 'apps.devices.tasks.update_status',
         'schedule': 15.0,  # 15 seconds
-        'args': (4,)  # ID of device
+        'args': (1,)  # ID of device
     },
-    'device-2': {
-        'task': 'apps.devices.tasks.update_status',
-        'schedule': 15.0,
-        'args': (5,)
-    }
+    # 'check-actions': {
+    #     'task': 'apps.devices.tasks.check_pending_log_actions',
+    #     'schedule': 60.0,
+    # }
 }
 
 # Incorporo las configuraciones locales - Las que hay que modificar por ambiente
