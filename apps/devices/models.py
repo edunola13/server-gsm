@@ -32,7 +32,7 @@ class Device (models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __get_client(self):
-        return GSMClient(self.channel_i2c)
+        return GSMClient(int(self.channel_i2c))
 
     def update_status(self):
         gsm = self.__get_client()
