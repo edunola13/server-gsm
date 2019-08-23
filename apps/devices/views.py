@@ -10,11 +10,13 @@ from rest_framework import serializers
 from rest_framework.permissions import IsAdminUser
 from server.exceptions import ConflictError
 
-from apps.devices.models import (Device, LogDevice, LogAction,
-                                 Rule, RuleInstance)
+from apps.devices.models import (Device, LogDevice, LogAction)
+from apps.rules.models import (Rule, RuleInstance)
+
 from apps.devices.serializers import (
     DeviceSerializer, LogDeviceSerializer,
-    LogActionSerializer, LogActionUpdateSerializer,
+    LogActionSerializer, LogActionUpdateSerializer)
+from apps.rules.serializers import (
     RuleSerializer, RuleInstanceSerializer)
 from apps.devices.constants import ORIGIN_API
 
@@ -156,28 +158,3 @@ class LogActionViewSet(viewsets.ModelViewSet):
 
         serializer = LogActionSerializer(action)
         return Response(serializer.data)
-
-
-class RuleViewSet(viewsets.ModelViewSet):
-    permission_classes = (IsAdminUser,)
-
-    queryset = Rule.objects.all()
-    serializer_class = RuleSerializer
-
-    __basic_fields = ('name',)
-    filter_fields = __basic_fields + ('rule_type', 'from_type', 'to_type', 'from_number', 'to_number', 'enabled', 'date_created')
-    search_fields = __basic_fields
-    ordering_fields = __basic_fields
-    ordering = 'date_created'
-
-
-class RuleInstanceViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
-    permission_classes = (IsAdminUser,)
-
-    queryset = RuleInstance.objects.all()
-    serializer_class = RuleInstanceSerializer
-
-    __basic_fields = ()
-    filter_fields = __basic_fields + ('status', 'log', 'rule', 'rule_type', 'log_type', 'date_created')
-    ordering_fields = __basic_fields
-    ordering = 'date_created'

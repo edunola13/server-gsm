@@ -4,9 +4,7 @@ import json
 
 from rest_framework import serializers
 
-from apps.devices.models import Device, LogAction, LogDevice, Rule, RuleInstance
-
-from apps.devices.constants import ORIGIN_API
+from apps.devices.models import Device, LogAction, LogDevice
 
 
 class DeviceSerializer(serializers.ModelSerializer):
@@ -23,11 +21,13 @@ class DeviceSerializer(serializers.ModelSerializer):
 class LogDeviceSerializer(serializers.ModelSerializer):
     device = DeviceSerializer()
     description = serializers.SerializerMethodField()
+    response = serializers.SerializerMethodField()
 
     class Meta:
         model = LogDevice
         fields = ('id', 'status', 'log_type',
-                  'number', 'description', 'device', 'created_at')
+                  'number', 'description', 'response',
+                  'device', 'created_at')
 
     def get_description(self, obj):
         return obj.get_description()
@@ -72,26 +72,3 @@ class LogActionUpdateSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return data
-
-
-class RuleSerializer(serializers.ModelSerializer):
-    device = DeviceSerializer(write_only=True)
-    device_id = employee_id = serializers.PrimaryKeyRelatedField(
-        source='device', queryset=Device.objects.all(), write_only=True
-    )
-
-    class Meta:
-        model = Rule
-        fields = ('id', 'name', 'rule_type', 'from_type',
-                  'from_number', 'to_type', 'to_number',
-                  'enabled', 'device', 'device_id', 'created_at', 'updated_at')
-        read_only_fields = ('id', 'created_at', 'updated_at')
-
-
-class RuleInstanceSerializer(serializers.ModelSerializer):
-    device = DeviceSerializer()
-    log = LogDeviceSerializer()
-
-    class Meta:
-        model = RuleInstance
-        fields = ('id', 'status', 'description', 'device', 'log', 'created_at')

@@ -22,6 +22,7 @@ from rest_framework_jwt.views import obtain_jwt_token, verify_jwt_token, refresh
 urlpatterns = [
     url(r'^api/', include('apps.users.urls')),
     url(r'^api/', include('apps.devices.urls')),
+    url(r'^api/', include('apps.rules.urls')),
 
     url(r'^api-token-auth/', obtain_jwt_token),
     url(r'^api-token-verify/', verify_jwt_token),

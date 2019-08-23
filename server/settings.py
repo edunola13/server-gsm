@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'rest_framework_swagger',
     'apps.users',
     'apps.devices',
+    'apps.rules'
 ]
 
 MIDDLEWARE = [

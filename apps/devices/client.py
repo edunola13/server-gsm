@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # [pi] byte = bus.read_byte(address) -> [arduino] Wire.onRequest(handler)
-import smbus2 as smbus
+# import smbus2 as smbus
 import json
 import time
 
@@ -15,7 +15,7 @@ class I2CClient():
 
     def __init__(self, address):
         # for RPI version 1, use "bus = smbus.SMBus(0)"
-        self.bus = smbus.SMBus(1)
+        # self.bus = smbus.SMBus(1)
         self.address = address
 
     def __read(self, action):
@@ -49,7 +49,7 @@ class I2CClient():
                     n += 1
                     time.sleep(interval)
                     continue
-            except:
+            except Exception:
                 print ("Body:")
                 print (body)
                 # No es una respuesta completa, eso quiere decir que esta bien
@@ -88,7 +88,7 @@ class I2CClient():
                     time.sleep(interval)
                     continue
                 return json_data
-            except:
+            except Exception:
                 print ("Error:")
                 print (body)
         raise TooManyAttempt('Too many attempt waiting')

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+import json
 
-from datetime import datetime
+from django.utils import timezone
 
 from django.db import models
 
@@ -23,6 +24,7 @@ class Device (models.Model):
         choices=CHIP_STATUS_CHOICES,
         default=CHIP_STATUS_FREE)
 
+    read_index_sms = models.IntegerField(default=0)
     index_sms = models.IntegerField(default=1)
     channel_i2c = models.CharField(max_length=10)
     last_connection = models.DateTimeField(null=True)
@@ -43,28 +45,50 @@ class Device (models.Model):
                 device=self
             )
             self.status = STATUS_ERR
-            self.last_connection = datetime.now()
+            self.last_connection = timezone.now()
             self.save()
             return
 
         self.status = STATUS_CON
         self.chip_status = TO_CHIP_STATUS[status.get('s')]
-        self.last_connection = datetime.now()
+        self.last_connection = timezone.now()
         self.save()
+
+        if self.ship_status == CHIP_STATUS_IN_CALL:
+            LogDevice.objects.create(
+                log_type=LOG_DEVICE_TYPE_IN_CALL,
+                status=LOG_DEVICE_STATUS_OK,
+                device=self
+            )
 
         if status.get('r') == 1:
             LogDevice.objects.create(
                 log_type=LOG_DEVICE_TYPE_CALL,
+                status=LOG_DEVICE_STATUS_OK,
                 number=status.get('n', None),
                 device=self
             )
 
         if status.get('m') == 1:
-            LogDevice.objects.create(
-                log_type=LOG_DEVICE_TYPE_SMS,
-                description=json.dumps({'index': status.get('i')}),
-                device=self
-            )
+            #
+            # VER QUE EL NUMERO PUEDE SER MAYOR O MENOS
+            # SI ES MENOR, SE RESETEA EL INDEX_SMS A 1 Y SE LEE HASTA EL NUEVO INDICE
+            # SI ES MAYOR, SE LEE HASTA EL NUEVO INDICE
+            #
+            new_index = self.index_sms = int(status.get('i', 1))
+            if new_index > self.index_sms:
+                # LEER HASTA NUEVO INDICE
+                pass
+            if new_index < self.index_sms:
+                # RESET Y LEER HASTA EL NUEVO INDICE
+                pass
+            # self.save()
+            # for i in range(self.index_sms - 1, self.index_sms):
+            #     LogDevice.objects.create(
+            #         log_type=LOG_DEVICE_TYPE_NEWSMS,
+            #         description=json.dumps({'index': str(i)}),
+            #         device=self
+            #     )
 
 
 class LogDevice (models.Model):
@@ -86,40 +110,34 @@ class LogDevice (models.Model):
         except Exception:
             return None
 
-    def can_update(self):
+    def can_treat(self):
         return self.status not in ['OK', 'CAN', 'PRO']
 
-    """
-        Los LogDevice tambien van a tener estado y se van a ejecutar
-        En base a los LogDevice y LogAction se sabe todo.
-        Despues vamos a tener 2 modelos mas llamados SMS (entrada y salida) y Call (entrada y salida)
-        estos se van a generar en base a los log.
-        Ver bien en base a que hacer las reglas.
-    """
+    def treat_log(self):
+        try:
+            self.status = LOG_STATUS_PRO
+            self.save()
+            self.__internal_treat_log()
+            self.status = LOG_STATUS_OK
+            self.save()
+        except Exception as e:
+            self.status = LOG_STATUS_ERR
+            print (e)
 
-
-class Rule (models.Model):
-    name = models.CharField(max_length=100)
-    origin = models.CharField(max_length=10, choices=ORIGIN_CHOICES)
-    rule_type = models.CharField(max_length=10, choices=RULE_TYPE_CHOICES, default=RULE_TYPE_DEFAULT)
-    from_type = models.CharField(max_length=10, choices=RULE_FROM_TYPE_CHOICES, null=True)
-    from_number = models.CharField(max_length=255, null=True)
-    to_type = models.CharField(max_length=10, choices=RULE_TO_TYPE_CHOICES, null=True)
-    to_number = models.CharField(max_length=255, null=True)
-    enabled = models.BooleanField(default=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    device = models.ForeignKey(Device, related_name='rules', on_delete=models.PROTECT,)  # Puede no tener device
-
-
-class RuleInstance (models.Model):
-    description = models.TextField(null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    log_device = models.ForeignKey(LogDevice, on_delete=models.PROTECT,)
-    rule = models.ForeignKey(Rule, on_delete=models.PROTECT,)
+    def __internal_treat_log():
+        gsm = self.device.__get_client()
+        if self.log_type == LOG_DEVICE_TYPE_NEWSMS:
+            data = json.loads(self.description)
+            description = json.dumps(
+                gsm.read_sms(self.number, str(data.get('index', "1")))
+            )
+            LogDevice.objects.create(
+                log_type=LOG_DEVICE_TYPE_SMS,
+                description=description,
+                status=LOG_DEVICE_STATUS_OK,
+                # number= SACAR NUMERO DE DESCRIPTION
+                device=self
+            )
 
 
 class LogAction (models.Model):
@@ -136,8 +154,8 @@ class LogAction (models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     device = models.ForeignKey(Device, on_delete=models.PROTECT,)
-    rule_instance = models.ForeignKey(RuleInstance,
-                                      on_delete=models.PROTECT, null=True)
+    # rule_instance = models.ForeignKey(RuleInstance,
+    #                                   on_delete=models.PROTECT, null=True)
 
     def get_description(self):
         try:
@@ -184,5 +202,7 @@ class LogAction (models.Model):
         if self.log_type == LOG_ACTION_TYPE_RSMS:
             data = json.loads(self.description)
             self.response = json.dumps(
-                gsm.read_sms(self.number, data.get('index', "1"))
+                gsm.read_sms(self.number, str(data.get('index', "1")))
             )
+        if self.log_type == LOG_ACTION_TYPE_DSMS:
+            self.response = json.dumps(gsm.delete_sms())

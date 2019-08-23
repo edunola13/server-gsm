@@ -1,54 +1,68 @@
 from __future__ import absolute_import, unicode_literals
+import json
 from celery import task
 
 from datetime import datetime, timedelta
 
 from apps.devices.models import Device, LogAction, LogDevice
+from apps.devices.constants import LOG_DEVICE_TYPE_NEWSMS
 
 
-@task()
+@task()  # 15 Segs
 def update_status(id):
     device = Device.objects.get(id=id)
     device.update_status()
 
 
-# @task()
-# def check_new_sms(id):
-#     device = Device.objects.get(id=id)
-#     gsm = device.__get_client()
-#     sms = gsm.get_sms(device.index_sms)
-#     if status.get('s', None) == 'error':
-#         return
-#     if status.get('b', None) == '':
-#         gsm.delete_sms()
+@task()  # 5 Mins / No ejecutar al mismo tiempo que update_status
+def check_new_sms(id):
+    device = Device.objects.get(id=id)
+    gsm = device.__get_client()
+    index = device.index_sms + 1
+    sms = gsm.get_sms(index)
+    if sms.get('s', None) == 'error':
+        return
+    if sms.get('b', None) != '':
+        device.index_sms = index
+        device.save()
+        LogDevice.objects.create(
+            log_type=LOG_DEVICE_TYPE_NEWSMS,
+            description=json.dumps({'index': index}),
+            device=device
+        )
 
 
 @task()
 def check_pending_log_devices():
-    try:
-        date = datetime.now() - timedelta(min=10)
-        logs = LogDevice.objects.filter(
-            status__in=['INI', 'ERR'],
-            created_at__lte=date
-        )
-        for log in logs:
-            task.apply_async([log.id], countdown=30)
-    except Exception as e:
-        print (e)
+    logs = LogDevice.objects.filter(
+        status__in=['INI']
+    )
+    time = 2
+    for log in logs:
+        treat_log_device.apply_async([log.id], countdown=10 + time)
+        time += 5
+
+
+@task(
+    max_retries=3,
+    default_retry_delay=2 * 60,
+    autoretry_for=(Exception,)
+)
+def treat_log_device(action_id):
+    log = LogDevice.objects.get(id=action_id)
+    if log.can_treat():
+        log.treat_log()
 
 
 @task()
 def check_pending_log_actions():
-    try:
-        date = datetime.now() - timedelta(min=10)
-        logs = LogAction.objects.filter(
-            status__in=['INI', 'ERR'],
-            created_at__lte=date
-        )
-        for log in logs:
-            execute_action.apply_async([log.id], countdown=30)
-    except Exception as e:
-        print (e)
+    date = datetime.now() - timedelta(min=10)
+    logs = LogAction.objects.filter(
+        status__in=['INI', 'ERR'],
+        created_at__lte=date
+    )
+    for log in logs:
+        execute_action.apply_async([log.id], countdown=30)
 
 
 @task(
