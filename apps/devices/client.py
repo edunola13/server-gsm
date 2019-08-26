@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # [pi] byte = bus.read_byte(address) -> [arduino] Wire.onRequest(handler)
-# import smbus2 as smbus
+import smbus2 as smbus
 import json
 import time
 
@@ -17,7 +17,7 @@ class I2CClient():
 
     def __init__(self, address):
         # for RPI version 1, use "bus = smbus.SMBus(0)"
-        # self.bus = smbus.SMBus(1)
+        self.bus = smbus.SMBus(1)
         self.address = address
 
     def __read(self, action):
@@ -190,9 +190,9 @@ class GSMClient(I2CClient):
 
     def delete_sms(self):
         with Lock(self._name_resource(), 10000):
-            self.send(self.ACTION_DEL_SMS, '', 20)
+            self.send(self.ACTION_DEL_SMS, '')
             time.sleep(10)
-            return self.receive(self.RESPONSE_HANGOFF)
+            return self.receive(self.RESPONSE_DEL_SMS)
 
     def get_localization(self):
         with Lock(self._name_resource(), 10000):

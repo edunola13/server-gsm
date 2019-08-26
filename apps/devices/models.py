@@ -24,7 +24,7 @@ class Device (models.Model):
         choices=CHIP_STATUS_CHOICES,
         default=CHIP_STATUS_FREE)
 
-    index_sms = models.IntegerField(default=1)
+    index_sms = models.IntegerField(default=0)
     channel_i2c = models.CharField(max_length=10)
     last_connection = models.DateTimeField(null=True)
     enabled = models.BooleanField(default=True)
@@ -32,11 +32,11 @@ class Device (models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __get_client(self):
+    def _get_client(self):
         return GSMClient(int(self.channel_i2c))
 
     def update_status(self):
-        gsm = self.__get_client()
+        gsm = self._get_client()
         status = gsm.get_status()
         if status.get('s', None) == 'error':
             LogDevice.objects.create(
@@ -53,7 +53,7 @@ class Device (models.Model):
         self.last_connection = timezone.now()
         self.save()
 
-        if self.ship_status == CHIP_STATUS_IN_CALL:
+        if self.chip_status == CHIP_STATUS_IN_CALL:
             LogDevice.objects.create(
                 log_type=LOG_DEVICE_TYPE_IN_CALL,
                 status=LOG_DEVICE_STATUS_OK,
@@ -71,14 +71,14 @@ class Device (models.Model):
         if status.get('m') == 1:
             new_index = int(status.get('i', 1))
             if new_index > self.index_sms:
-                for i in range(self.index + 1, new_index + 1):
+                for i in range(self.index_sms + 1, new_index + 1):
                     LogDevice.objects.create(
                         log_type=LOG_DEVICE_TYPE_NEWSMS,
                         description=json.dumps({'index': str(i)}),
                         device=self
                     )
             if new_index < self.index_sms:
-                for i in range(1, new_index):
+                for i in range(1, new_index + 1):
                     LogDevice.objects.create(
                         log_type=LOG_DEVICE_TYPE_NEWSMS,
                         description=json.dumps({'index': str(i)}),
@@ -88,10 +88,10 @@ class Device (models.Model):
             self.save()
 
     def check_new_sms(self):
-        gsm = self.__get_client()
+        gsm = self._get_client()
         index = self.index_sms + 1
         for i in range(25):  # Leo maximo X mensajes en un tasks
-            sms = gsm.get_sms(index)
+            sms = gsm.get_sms(str(index))
             if sms.get('s', None) == 'error':
                 break
             if sms.get('b', None) == '':
@@ -107,12 +107,12 @@ class Device (models.Model):
             index += 1
 
     def delete_sms(self):
-        gsm = self.__get_client()
+        gsm = self._get_client()
         gsm.delete_sms()
         # Leo con el indice anterior por si aparecio alguno nuevo
-        check_new_sms(id)
+        self.check_new_sms()
         # Reseteo el indice
-        self.index_sms = 1
+        self.index_sms = 0
         self.save()
 
 
@@ -139,32 +139,32 @@ class LogDevice (models.Model):
         return self.status not in ['OK', 'CAN', 'PRO']
 
     def can_treat(self):
-        return self.status in [LOG_STATUS_INI, LOG_STATUS_ERR]
+        return self.status in [LOG_DEVICE_STATUS_INI, LOG_DEVICE_STATUS_ERR]
 
     def treat_log(self):
         try:
-            self.status = LOG_STATUS_PRO
+            self.status = LOG_DEVICE_STATUS_PRO
             self.save()
             self.__internal_treat_log()
-            self.status = LOG_STATUS_OK
+            self.status = LOG_DEVICE_STATUS_OK
             self.save()
         except Exception as e:
-            self.status = LOG_STATUS_ERR
+            self.status = LOG_DEVICE_STATUS_ERR
             print (e)
 
-    def __internal_treat_log():
-        gsm = self.device.__get_client()
+    def __internal_treat_log(self):
+        gsm = self.device._get_client()
         if self.log_type == LOG_DEVICE_TYPE_NEWSMS:
             data = json.loads(self.description)
             description = json.dumps(
-                gsm.read_sms(self.number, str(data.get('index', "1")))
+                gsm.get_sms(str(data.get('index', "1")))
             )
             LogDevice.objects.create(
                 log_type=LOG_DEVICE_TYPE_SMS,
                 description=description,
                 status=LOG_DEVICE_STATUS_OK,
                 # number= SACAR NUMERO DE DESCRIPTION
-                device=self
+                device=self.device
             )
 
 
@@ -201,21 +201,21 @@ class LogAction (models.Model):
         return self.status not in ['OK', 'CAN', 'PRO']
 
     def can_execute(self):
-        return self.status in [LOG_STATUS_INI, LOG_STATUS_ERR]
+        return self.status in [LOG_ACTION_STATUS_INI, LOG_ACTION_STATUS_ERR]
 
     def execute_action(self):
         try:
-            self.status = LOG_STATUS_PRO
+            self.status = LOG_ACTION_STATUS_PRO
             self.save()
             self.__internal_execute_action()
-            self.status = LOG_STATUS_OK
+            self.status = LOG_ACTION_STATUS_OK
             self.save()
         except Exception as e:
-            self.status = LOG_STATUS_ERR
+            self.status = LOG_ACTION_STATUS_ERR
             print (e)
 
     def __internal_execute_action(self):
-        gsm = self.device.__get_client()
+        gsm = self.device._get_client()
         if self.log_type == LOG_ACTION_TYPE_CALL:
             self.response = json.dumps(gsm.make_call(self.number))
         if self.log_type == LOG_ACTION_TYPE_ANSW:
@@ -230,7 +230,7 @@ class LogAction (models.Model):
         if self.log_type == LOG_ACTION_TYPE_RSMS:
             data = json.loads(self.description)
             self.response = json.dumps(
-                gsm.read_sms(self.number, str(data.get('index', "1")))
+                gsm.get_sms(str(data.get('index', "1")))
             )
         if self.log_type == LOG_ACTION_TYPE_DSMS:
             self.response = json.dumps(gsm.delete_sms())
