@@ -180,5 +180,41 @@ CELERY_BEAT_SCHEDULE = {
     # }
 }
 
+REDIS_BLOCKER = [
+    {"host": "localhost", "port": 6379, "db": 0},
+]
+REDIS_BLOCKER_RETRY = 10
+REDIS_BLOCKER_DELAY = 0.5
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': '/tmp/debug.log',
+            'formatter': 'verbose'
+        },
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose'
+        },
+    },
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s %(asctime)s %(module)s '
+                      '%(process)d %(thread)d %(message)s'
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
+
 # Incorporo las configuraciones locales - Las que hay que modificar por ambiente
 from .local_settings import *

@@ -87,6 +87,34 @@ class Device (models.Model):
             self.index_sms = new_index
             self.save()
 
+    def check_new_sms(self):
+        gsm = self.__get_client()
+        index = self.index_sms + 1
+        for i in range(25):  # Leo maximo X mensajes en un tasks
+            sms = gsm.get_sms(index)
+            if sms.get('s', None) == 'error':
+                break
+            if sms.get('b', None) == '':
+                break
+            if sms.get('b', None) != '':
+                self.index_sms = index
+                self.save()
+                LogDevice.objects.create(
+                    log_type=LOG_DEVICE_TYPE_NEWSMS,
+                    description=json.dumps({'index': index}),
+                    device=self
+                )
+            index += 1
+
+    def delete_sms(self):
+        gsm = self.__get_client()
+        gsm.delete_sms()
+        # Leo con el indice anterior por si aparecio alguno nuevo
+        check_new_sms(id)
+        # Reseteo el indice
+        self.index_sms = 1
+        self.save()
+
 
 class LogDevice (models.Model):
     status = models.CharField(

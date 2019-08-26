@@ -6,7 +6,7 @@ from django.db import models
 from .constants import *
 from .strategy import STRATEGY_CLASS
 
-# from apps.devices.models import Device, LogDevice
+from apps.devices.models import Device
 
 
 class Rule (models.Model):

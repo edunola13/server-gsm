@@ -1,51 +1,33 @@
 from __future__ import absolute_import, unicode_literals
-import json
 from celery import task
 
 from datetime import datetime, timedelta
 
 from apps.devices.models import Device, LogAction, LogDevice
-from apps.devices.constants import LOG_DEVICE_TYPE_NEWSMS
+
+from server.redis_lock import Lock
 
 
 @task()  # 15 Segs
 def update_status(id):
-    device = Device.objects.get(id=id)
-    device.update_status()
+    # Acorto retry y delay para que basicamente ignoremos la task asi no se apilan
+    with Lock('TASK_DEVICE_ID_%d' % id, 2000, 0, 0.2):
+        device = Device.objects.get(id=id)
+        device.update_status()
 
 
 @task()  # 5 Mins / No ejecutar al mismo tiempo que update_status
 def check_new_sms(id):
-    device = Device.objects.get(id=id)
-    gsm = device.__get_client()
-    index = device.index_sms + 1
-    for i in range(25):  # Leo maximo X mensajes en un tasks
-        sms = gsm.get_sms(index)
-        if sms.get('s', None) == 'error':
-            break
-        if sms.get('b', None) == '':
-            break
-        if sms.get('b', None) != '':
-            device.index_sms = index
-            device.save()
-            LogDevice.objects.create(
-                log_type=LOG_DEVICE_TYPE_NEWSMS,
-                description=json.dumps({'index': index}),
-                device=device
-            )
-        index += 1
+    with Lock('TASK_DEVICE_ID_%d' % id, 60000):
+        device = Device.objects.get(id=id)
+        device.check_new_sms()
 
 
 @task()  # X Dias / No ejecutar al mismo tiempo que update_status
 def delete_sms(id):
-    device = Device.objects.get(id=id)
-    gsm = device.__get_client()
-    gsm.delete_sms()
-    # Leo con el indice anterior por si aparecio alguno nuevo
-    check_new_sms(id)
-    # Reseteo el indice
-    device.index_sms = 1
-    device.save()
+    with Lock('TASK_DEVICE_ID_%d' % id, 60000):
+        device = Device.objects.get(id=id)
+        device.delete_sms()
 
 
 @task()

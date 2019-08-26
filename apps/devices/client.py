@@ -4,6 +4,8 @@
 import json
 import time
 
+from server.redis_lock import Lock
+
 
 class TooManyAttempt(Exception):
     def __init__(self, message):
@@ -131,54 +133,69 @@ class GSMClient(I2CClient):
     GENERIC_WRITE = 30
     GENERIC_READ = 31
 
+    def __init__(self, address):
+        super().__init__(address)
+
+    def _name_resource(self):
+        return 'ACTION_DEVICE_%d' % self.address
+
     def get_status(self):
-        self.send(self.ACTION_GET_STA, '')
-        time.sleep(0.5)
-        return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ)
+        with Lock(self._name_resource(), 2000):
+            self.send(self.ACTION_GET_STA, '')
+            time.sleep(0.5)
+            return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ)
 
     def get_info(self):
-        self.send(self.ACTION_GET_INFO, '')
-        time.sleep(0.5)
-        return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ)
+        with Lock(self._name_resource(), 2000):
+            self.send(self.ACTION_GET_INFO, '')
+            time.sleep(0.5)
+            return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ)
 
     def make_call(self, number):
-        body = json.dumps({'n': number}, separators=(',', ':'))
-        self.send(self.ACTION_CALL, body)
-        time.sleep(1)
-        return self.receive(self.RESPONSE_CALL)
+        with Lock(self._name_resource(), 4000):
+            body = json.dumps({'n': number}, separators=(',', ':'))
+            self.send(self.ACTION_CALL, body)
+            time.sleep(1)
+            return self.receive(self.RESPONSE_CALL)
 
     def answer_call(self):
-        self.send(self.ACTION_ANSWER, '')
-        time.sleep(1)
-        return self.receive(self.RESPONSE_ANSWER)
+        with Lock(self._name_resource(), 4000):
+            self.send(self.ACTION_ANSWER, '')
+            time.sleep(1)
+            return self.receive(self.RESPONSE_ANSWER)
 
     def hangoff_call(self):
-        self.send(self.ACTION_HANGOFF, '')
-        time.sleep(1)
-        return self.receive(self.RESPONSE_HANGOFF)
+        with Lock(self._name_resource(), 4000):
+            self.send(self.ACTION_HANGOFF, '')
+            time.sleep(1)
+            return self.receive(self.RESPONSE_HANGOFF)
 
     def send_sms(self, number, msg):
-        body = json.dumps(
-            {'n': number, 'b': msg},
-            separators=(',', ':'))
-        self.send(self.ACTION_SEND_SMS, body)
-        time.sleep(5)
-        return self.receive(self.RESPONSE_SEND_SMS, 20)
+        with Lock(self._name_resource(), 10000):
+            body = json.dumps(
+                {'n': number, 'b': msg},
+                separators=(',', ':'))
+            self.send(self.ACTION_SEND_SMS, body)
+            time.sleep(5)
+            return self.receive(self.RESPONSE_SEND_SMS, 20)
 
     def get_sms(self, index):
-        body = json.dumps(
-            {'i': index},
-            separators=(',', ':'))
-        self.send(self.ACTION_GET_SMS, body)
-        time.sleep(2.5)
-        return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ, 20)
+        with Lock(self._name_resource(), 5000):
+            body = json.dumps(
+                {'i': index},
+                separators=(',', ':'))
+            self.send(self.ACTION_GET_SMS, body)
+            time.sleep(2.5)
+            return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ, 20)
 
     def delete_sms(self):
-        self.send(self.ACTION_DEL_SMS, '', 20)
-        time.sleep(10)
-        return self.receive(self.RESPONSE_HANGOFF)
+        with Lock(self._name_resource(), 10000):
+            self.send(self.ACTION_DEL_SMS, '', 20)
+            time.sleep(10)
+            return self.receive(self.RESPONSE_HANGOFF)
 
     def get_localization(self):
-        self.send(self.ACTION_GET_LOC, '')
-        time.sleep(30)
-        return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ)
+        with Lock(self._name_resource(), 10000):
+            self.send(self.ACTION_GET_LOC, '')
+            time.sleep(30)
+            return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ)
