@@ -24,7 +24,6 @@ class Device (models.Model):
         choices=CHIP_STATUS_CHOICES,
         default=CHIP_STATUS_FREE)
 
-    read_index_sms = models.IntegerField(default=0)
     index_sms = models.IntegerField(default=1)
     channel_i2c = models.CharField(max_length=10)
     last_connection = models.DateTimeField(null=True)
@@ -70,25 +69,23 @@ class Device (models.Model):
             )
 
         if status.get('m') == 1:
-            #
-            # VER QUE EL NUMERO PUEDE SER MAYOR O MENOS
-            # SI ES MENOR, SE RESETEA EL INDEX_SMS A 1 Y SE LEE HASTA EL NUEVO INDICE
-            # SI ES MAYOR, SE LEE HASTA EL NUEVO INDICE
-            #
-            new_index = self.index_sms = int(status.get('i', 1))
+            new_index = int(status.get('i', 1))
             if new_index > self.index_sms:
-                # LEER HASTA NUEVO INDICE
-                pass
+                for i in range(self.index + 1, new_index + 1):
+                    LogDevice.objects.create(
+                        log_type=LOG_DEVICE_TYPE_NEWSMS,
+                        description=json.dumps({'index': str(i)}),
+                        device=self
+                    )
             if new_index < self.index_sms:
-                # RESET Y LEER HASTA EL NUEVO INDICE
-                pass
-            # self.save()
-            # for i in range(self.index_sms - 1, self.index_sms):
-            #     LogDevice.objects.create(
-            #         log_type=LOG_DEVICE_TYPE_NEWSMS,
-            #         description=json.dumps({'index': str(i)}),
-            #         device=self
-            #     )
+                for i in range(1, new_index):
+                    LogDevice.objects.create(
+                        log_type=LOG_DEVICE_TYPE_NEWSMS,
+                        description=json.dumps({'index': str(i)}),
+                        device=self
+                    )
+            self.index_sms = new_index
+            self.save()
 
 
 class LogDevice (models.Model):
@@ -110,8 +107,11 @@ class LogDevice (models.Model):
         except Exception:
             return None
 
-    def can_treat(self):
+    def can_update(self):
         return self.status not in ['OK', 'CAN', 'PRO']
+
+    def can_treat(self):
+        return self.status in [LOG_STATUS_INI, LOG_STATUS_ERR]
 
     def treat_log(self):
         try:
@@ -154,8 +154,8 @@ class LogAction (models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     device = models.ForeignKey(Device, on_delete=models.PROTECT,)
-    # rule_instance = models.ForeignKey(RuleInstance,
-    #                                   on_delete=models.PROTECT, null=True)
+    # rule_instance = models.ForeignKey('rules.RuleInstance',
+    #                                   on_delete=models.PROTECT, null=True)  VER SI ES NECESARIO
 
     def get_description(self):
         try:

@@ -6,7 +6,7 @@ from rest_framework import serializers
 from apps.rules.models import Rule, RuleInstance
 from apps.devices.models import Device
 
-from apps.devices.serializers import DeviceSerializer, LogDeviceSerializer
+from apps.devices.serializers import DeviceSerializer
 
 
 class RuleSerializer(serializers.ModelSerializer):
@@ -17,16 +17,13 @@ class RuleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Rule
-        fields = ('id', 'name', 'rule_type', 'from_type',
-                  'from_number', 'to_type', 'to_number',
+        fields = ('id', 'name', 'strategy', 'rule_type', 'description'
                   'enabled', 'device', 'device_id', 'created_at', 'updated_at')
         read_only_fields = ('id', 'created_at', 'updated_at')
 
 
 class RuleInstanceSerializer(serializers.ModelSerializer):
-    device = DeviceSerializer()
-    log = LogDeviceSerializer()
 
     class Meta:
         model = RuleInstance
-        fields = ('id', 'status', 'description', 'device', 'log', 'created_at')
+        fields = ('id', 'status', 'description', 'rule', 'created_at')

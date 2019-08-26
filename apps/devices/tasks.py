@@ -19,23 +19,39 @@ def check_new_sms(id):
     device = Device.objects.get(id=id)
     gsm = device.__get_client()
     index = device.index_sms + 1
-    sms = gsm.get_sms(index)
-    if sms.get('s', None) == 'error':
-        return
-    if sms.get('b', None) != '':
-        device.index_sms = index
-        device.save()
-        LogDevice.objects.create(
-            log_type=LOG_DEVICE_TYPE_NEWSMS,
-            description=json.dumps({'index': index}),
-            device=device
-        )
+    for i in range(25):  # Leo maximo X mensajes en un tasks
+        sms = gsm.get_sms(index)
+        if sms.get('s', None) == 'error':
+            break
+        if sms.get('b', None) == '':
+            break
+        if sms.get('b', None) != '':
+            device.index_sms = index
+            device.save()
+            LogDevice.objects.create(
+                log_type=LOG_DEVICE_TYPE_NEWSMS,
+                description=json.dumps({'index': index}),
+                device=device
+            )
+        index += 1
+
+
+@task()  # X Dias / No ejecutar al mismo tiempo que update_status
+def delete_sms(id):
+    device = Device.objects.get(id=id)
+    gsm = device.__get_client()
+    gsm.delete_sms()
+    # Leo con el indice anterior por si aparecio alguno nuevo
+    check_new_sms(id)
+    # Reseteo el indice
+    device.index_sms = 1
+    device.save()
 
 
 @task()
 def check_pending_log_devices():
     logs = LogDevice.objects.filter(
-        status__in=['INI']
+        status__in=['INI', 'ERR']
     )
     time = 2
     for log in logs:

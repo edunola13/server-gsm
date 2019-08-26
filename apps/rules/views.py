@@ -19,7 +19,7 @@ class RuleViewSet(viewsets.ModelViewSet):
     serializer_class = RuleSerializer
 
     __basic_fields = ('name',)
-    filter_fields = __basic_fields + ('rule_type', 'from_type', 'to_type', 'from_number', 'to_number', 'enabled', 'date_created')
+    filter_fields = __basic_fields + ('rule_strategy' 'rule_type', 'enabled', 'date_created')
     search_fields = __basic_fields
     ordering_fields = __basic_fields
     ordering = 'date_created'

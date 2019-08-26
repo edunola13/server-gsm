@@ -1,7 +1,7 @@
 from rest_framework.routers import DefaultRouter
 
-from apps.devices.views import (DeviceViewSet, LogDeviceViewSet, LogActionViewSet,
-                                RuleViewSet, RuleInstanceViewSet)
+from apps.devices.views import (
+    DeviceViewSet, LogDeviceViewSet, LogActionViewSet)
 
 
 router = DefaultRouter()
