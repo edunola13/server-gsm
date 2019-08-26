@@ -21,6 +21,15 @@ class RuleSerializer(serializers.ModelSerializer):
                   'enabled', 'device', 'device_id', 'created_at', 'updated_at')
         read_only_fields = ('id', 'created_at', 'updated_at')
 
+    def validate(self, data):
+        #
+        # CHECK QUE EN DESCRIPTION ESTE LO QUE PIDA LA STRATEGIA QUE CORRESPONDA
+        #
+        if False:
+            raise serializers.ValidationError("Invalid description")
+
+        return data
+
 
 class RuleInstanceSerializer(serializers.ModelSerializer):
 

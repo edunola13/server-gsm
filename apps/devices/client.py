@@ -116,6 +116,7 @@ class GSMClient(I2CClient):
     ACTION_GET_SMS = 5
     ACTION_DEL_SMS = 6
     ACTION_GET_LOC = 7
+    ACTION_GET_INFO = 9  # INFO
     ACTION_GET_STA = 10  # STATUS
 
     RESPONSE_CALL = 11
@@ -132,6 +133,11 @@ class GSMClient(I2CClient):
 
     def get_status(self):
         self.send(self.ACTION_GET_STA, '')
+        time.sleep(0.5)
+        return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ)
+
+    def get_info(self):
+        self.send(self.ACTION_GET_INFO, '')
         time.sleep(0.5)
         return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ)
 

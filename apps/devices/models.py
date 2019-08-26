@@ -206,3 +206,7 @@ class LogAction (models.Model):
             )
         if self.log_type == LOG_ACTION_TYPE_DSMS:
             self.response = json.dumps(gsm.delete_sms())
+        if self.log_type == LOG_ACTION_TYPE_INFO:
+            self.response = json.dumps(gsm.get_info())
+        if self.log_type == LOG_ACTION_TYPE_STA:
+            self.response = json.dumps(gsm.get_status())

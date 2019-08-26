@@ -4,13 +4,13 @@ from __future__ import unicode_literals
 from django.db import models
 
 from .constants import *
+from .strategy import STRATEGY_CLASS
 
-from apps.devices.models import Device, LogDevice
+# from apps.devices.models import Device, LogDevice
 
 
 class Rule (models.Model):
     name = models.CharField(max_length=100)
-    # origin = models.CharField(max_length=10, choices=ORIGIN_CHOICES)  NO MASSSS
     strategy = models.CharField(
         max_length=10, choices=RULE_STRATEGY_CHOICES)
     rule_type = models.CharField(
@@ -39,10 +39,17 @@ class Rule (models.Model):
         related_name='rules',
         on_delete=models.PROTECT,)  # Puede no tener device
 
+    def check_rule(self, from_date):
+        strategy = self.__get_strategy()
+        strategy.check_rule(from_date)
+
+    def __get_strategy():
+        klass = STRATEGY_CLASS[self.strategy]
+        return klass(self)
+
 
 class RuleInstance (models.Model):
     description = models.TextField(null=True)  # Info de ejecucion
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # log_device = models.ForeignKey(LogDevice, on_delete=models.PROTECT,) NO MASSSS
     rule = models.ForeignKey(Rule, on_delete=models.PROTECT,)
