@@ -67,6 +67,9 @@ class Device (models.Model):
                 number=status.get('n', None),
                 device=self
             )
+            #
+            # LANZAR YA, 0.5/1 SECOND, ASI ESPERA QUE TERMINA ESTO
+            #
 
         if status.get('m') == 1:
             new_index = int(status.get('i', 1))
@@ -182,8 +185,6 @@ class LogAction (models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     device = models.ForeignKey(Device, on_delete=models.PROTECT,)
-    # rule_instance = models.ForeignKey('rules.RuleInstance',
-    #                                   on_delete=models.PROTECT, null=True)  VER SI ES NECESARIO
 
     def get_description(self):
         try:
