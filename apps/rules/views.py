@@ -19,9 +19,9 @@ class RuleViewSet(viewsets.ModelViewSet):
     serializer_class = RuleSerializer
 
     __basic_fields = ('name',)
-    filter_fields = __basic_fields + ('rule_strategy' 'rule_type', 'enabled', 'date_created')
+    filter_fields = __basic_fields + ('strategy' 'rule_type', 'enabled', 'device', 'date_created')
     search_fields = __basic_fields
-    ordering_fields = __basic_fields
+    ordering_fields = __basic_fields + ('strategy', 'date_created')
     ordering = 'date_created'
 
 
@@ -31,7 +31,6 @@ class RuleInstanceViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
     queryset = RuleInstance.objects.all()
     serializer_class = RuleInstanceSerializer
 
-    __basic_fields = ()
-    filter_fields = __basic_fields + ('status', 'log', 'rule', 'rule_type', 'log_type', 'date_created')
-    ordering_fields = __basic_fields
+    filter_fields = ('rule', 'rule__rule_type', 'date_created')
+    ordering_fields = ('rule__rule_type', 'date_created')
     ordering = 'date_created'

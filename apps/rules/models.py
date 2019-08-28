@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from django.db import models
 
 from .constants import *
-from .strategy import STRATEGY_CLASS
+from .strategy import STRATEGY_CLASS_DEV, STRATEGY_CLASS_ACT
 
 from apps.devices.models import Device
 
@@ -40,11 +40,11 @@ class Rule (models.Model):
         on_delete=models.PROTECT,)  # Puede no tener device
 
     def check_rule(self, from_date):
-        strategy = self.__get_strategy()
+        strategy = self._get_strategy()
         strategy.check_rule(from_date)
 
-    def __get_strategy():
-        klass = STRATEGY_CLASS[self.strategy]
+    def _get_strategy():
+        klass = STRATEGY_CLASS_DEV[self.strategy] if RULE_TYPE_DEVICE == self.rule_type else STRATEGY_CLASS_ACT[self.strategy]
         return klass(self)
 
 
