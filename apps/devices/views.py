@@ -24,7 +24,7 @@ from apps.devices.tasks import execute_action
 
 
 class DeviceViewSet(viewsets.ModelViewSet):
-    permission_classes = ()
+    permission_classes = ()  # (IsAdminUser,)
 
     queryset = Device.objects.all()
     serializer_class = DeviceSerializer
@@ -69,16 +69,16 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
 
 class LogDeviceViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
-    permission_classes = (IsAdminUser,)
+    permission_classes = ()  # (IsAdminUser,)
 
     queryset = LogDevice.objects.all()
     serializer_class = LogDeviceSerializer
 
     __basic_fields = ('number',)
-    filter_fields = __basic_fields + ('status', 'log_type', 'date_created')
+    filter_fields = __basic_fields + ('status', 'log_type', 'created_at')
     search_fields = __basic_fields
-    ordering_fields = __basic_fields
-    ordering = 'date_created'
+    ordering_fields = __basic_fields + ('created_at',)
+    ordering = 'created_at'
 
     @action(methods=['put'], detail=True)
     def change_status(self, request, pk=None):
@@ -89,7 +89,7 @@ class LogDeviceViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
 
         status = request.data.get('status', None)
         if status not in ['INI', 'CAN']:
-            raise serializers.ValidationError("Invalid log device status")
+            raise serializers.ValidationError({'status': "Invalid status"})
 
         log.status = status
         log.save()
@@ -99,7 +99,7 @@ class LogDeviceViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
 
 
 class LogActionViewSet(viewsets.ModelViewSet):
-    permission_classes = []  # (IsAdminUser,)
+    permission_classes = ()  # (IsAdminUser,)
 
     queryset = LogAction.objects.all()
     serializer_class = LogActionSerializer
@@ -151,7 +151,7 @@ class LogActionViewSet(viewsets.ModelViewSet):
 
         status = request.data.get('status', None)
         if status not in ['INI', 'CAN']:
-            raise serializers.ValidationError("Invalid log action status")
+            raise serializers.ValidationError({'status': "Invalid status"})
 
         action.status = status
         action.save()

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+import json
 
 from django.db import models
 
@@ -15,18 +16,7 @@ class Rule (models.Model):
         max_length=10, choices=RULE_STRATEGY_CHOICES)
     rule_type = models.CharField(
         max_length=10,
-        choices=RULE_TYPE_CHOICES, default=RULE_TYPE_DEVICE)
-
-    # NO MASSSS
-    # from_type = models.CharField(
-    #     max_length=10,
-    #     choices=RULE_FROM_TYPE_CHOICES, null=True)
-    # from_number = models.CharField(max_length=255, null=True)
-    # to_type = models.CharField(
-    #     max_length=10,
-    #     choices=RULE_TO_TYPE_CHOICES, null=True)
-    # to_number = models.CharField(max_length=255, null=True)
-
+        choices=RULE_TYPE_CHOICES)
     # Aca ponemos toda la data que necesita (buscar y enviar)
     description = models.TextField(null=True)
     enabled = models.BooleanField(default=True)
@@ -47,9 +37,21 @@ class Rule (models.Model):
         klass = STRATEGY_CLASS_DEV[self.strategy] if RULE_TYPE_DEVICE == self.rule_type else STRATEGY_CLASS_ACT[self.strategy]
         return klass(self)
 
+    def get_description(self):
+        try:
+            return json.loads(self.description)
+        except Exception:
+            return None
+
 
 class RuleInstance (models.Model):
     description = models.TextField(null=True)  # Info de ejecucion
     created_at = models.DateTimeField(auto_now_add=True)
 
     rule = models.ForeignKey(Rule, on_delete=models.PROTECT,)
+
+    def get_description(self):
+        try:
+            return json.loads(self.description)
+        except Exception:
+            return None

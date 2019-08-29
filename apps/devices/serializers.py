@@ -13,7 +13,7 @@ class DeviceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Device
         fields = ('id', 'name', 'number', 'chip_id',
-                  'status', 'chip_status', 'channel_i2c', 'index_sms'
+                  'status', 'chip_status', 'channel_i2c', 'index_sms',
                   'last_connection', 'enabled', 'created_at', 'updated_at')
         read_only_fields = ('id', 'chip_id', 'status',
                             'chip_status', 'index_sms',
@@ -62,7 +62,7 @@ class LogActionUpdateSerializer(serializers.ModelSerializer):
     def validate(self, data):
         log_type = None
         if self.instance:
-            if self.instance.can_update():
+            if not self.instance.can_update():
                 raise serializers.ValidationError("Invalid log action status")
             log_type = data['log_type'] if 'log_type' in data else self.instance.log_type
         else:

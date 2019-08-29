@@ -2,6 +2,7 @@ import os
 
 # SECURITY WARNING: don't run with debug turned on in production!
 import os
+from celery.schedules import crontab
 
 PROJECT_PATH = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
@@ -28,6 +29,32 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(PROJECT_PATH, 'database.sqlite'),
+    }
+}
+
+CELERY_BEAT_SCHEDULE = {
+    'device-1': {
+        'task': 'apps.devices.tasks.update_status',
+        'schedule': 15.0,  # 15 seconds
+        'args': (1,)  # ID of device
+    },
+    'device_check_new_sms-1': {
+        'task': 'apps.devices.tasks.check_new_sms',
+        'schedule': 60 * 2 + 10,  # 2:10 minutes:seconds
+        'args': (1,)  # ID of device
+    },
+    'device_check_new_sms-1': {
+        'task': 'apps.devices.tasks.check_new_sms',
+        'schedule': crontab(hour=7, minute=30),  # All days at 7:30
+        'args': (1,)  # ID of device
+    },
+    'check_check_pending_log_devices-1': {
+        'task': 'apps.devices.tasks.check_pending_log_devices',
+        'schedule': 30  # 30 Seconds
+    },
+    'check_check_pending_log_actions-1': {
+        'task': 'apps.devices.tasks.check_pending_log_actions',
+        'schedule': 30  # 30 Seconds
     }
 }
 

@@ -27,10 +27,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'jv5(78$62-hr+8==+kn4%r*(9g)fubx&&i=3ewc9p*tnkt6u$h'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -81,7 +80,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'server.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 
@@ -91,7 +89,6 @@ DATABASES = {
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/2.1/ref/settings/#auth-password-validators
@@ -110,7 +107,6 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/
@@ -174,10 +170,24 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': 15.0,  # 15 seconds
         'args': (1,)  # ID of device
     },
-    # 'check-actions': {
-    #     'task': 'apps.devices.tasks.check_pending_log_actions',
-    #     'schedule': 60.0,
-    # }
+    'device_check_new_sms-1': {
+        'task': 'apps.devices.tasks.check_new_sms',
+        'schedule': 60 * 2 + 10,  # 2:10 minutes:seconds
+        'args': (1,)  # ID of device
+    },
+    'device_check_new_sms-1': {
+        'task': 'apps.devices.tasks.check_new_sms',
+        'schedule': crontab(hour=7, minute=30),  # All days at 7:30
+        'args': (1,)  # ID of device
+    },
+    'check_check_pending_log_devices-1': {
+        'task': 'apps.devices.tasks.check_pending_log_devices',
+        'schedule': 30  # 30 Seconds
+    },
+    'check_check_pending_log_actions-1': {
+        'task': 'apps.devices.tasks.check_pending_log_actions',
+        'schedule': 30  # 30 Seconds
+    }
 }
 
 REDIS_BLOCKER = [

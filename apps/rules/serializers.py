@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+import json
 
 from rest_framework import serializers
 
@@ -8,21 +9,33 @@ from apps.devices.models import Device
 
 from apps.devices.serializers import DeviceSerializer
 
-from apps.rules.constants import RULE_TYPE_DEVICE, RULE_TYPE_ACTION
+from apps.rules.constants import RULE_TYPE_DEVICE
 from apps.rules.strategy import STRATEGY_CLASS_ACT, STRATEGY_CLASS_DEV
 
 
 class RuleSerializer(serializers.ModelSerializer):
-    device = DeviceSerializer(write_only=True)
-    device_id = employee_id = serializers.PrimaryKeyRelatedField(
-        source='device', queryset=Device.objects.all(), write_only=True
-    )
+    device = DeviceSerializer(read_only=True)
+    description = serializers.SerializerMethodField()
 
     class Meta:
         model = Rule
-        fields = ('id', 'name', 'strategy', 'rule_type', 'description'
-                  'enabled', 'device', 'device_id', 'created_at', 'updated_at')
-        read_only_fields = ('id', 'created_at', 'updated_at')
+        fields = ('id', 'name', 'strategy', 'rule_type', 'description',
+                  'enabled', 'device', 'created_at', 'updated_at')
+
+    def get_description(self, obj):
+        return obj.get_description()
+
+
+class RuleUpdateSerializer(serializers.ModelSerializer):
+    device_id = serializers.PrimaryKeyRelatedField(
+        source='device', queryset=Device.objects.all()
+    )
+    description = serializers.DictField(child=serializers.CharField())
+
+    class Meta:
+        model = Rule
+        fields = ('name', 'strategy', 'rule_type', 'description',
+                  'enabled', 'device_id',)
 
     def validate(self, data):
         rule_type = data['rule_type'] if 'rule_type' in data else self.instance.rule_type
@@ -33,14 +46,23 @@ class RuleSerializer(serializers.ModelSerializer):
 
         klass = STRATEGY_CLASSES[strategy]
         description = data['description'] if 'description' in data else self.instance.description
-        if klass.is_valid_description(description):
+        if not klass.is_valid_description(description):
             raise serializers.ValidationError("Invalid description")
+
+        try:
+            data['description'] = json.dumps(data['description'])
+        except Exception:
+            pass
 
         return data
 
 
 class RuleInstanceSerializer(serializers.ModelSerializer):
+    description = serializers.SerializerMethodField()
 
     class Meta:
         model = RuleInstance
         fields = ('id', 'description', 'rule', 'created_at')
+
+    def get_description(self, obj):
+        return obj.get_description()

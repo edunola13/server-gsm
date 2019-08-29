@@ -23,7 +23,7 @@ def check_new_sms(id):
         device.check_new_sms()
 
 
-@task()  # X Dias / No ejecutar al mismo tiempo que update_status
+@task()  # Una vez al dia / No ejecutar al mismo tiempo que update_status
 def delete_sms(id):
     with Lock('TASK_DEVICE_ID_%d' % id, 60000):
         device = Device.objects.get(id=id)

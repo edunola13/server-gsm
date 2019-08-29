@@ -22,6 +22,7 @@ class RuleStrategy():
         for event in events:
             self._apply_rule(event)
 
+    @classmethod
     def is_valid_description(cls, description):
         # VALIDAR LA DATA
         raise Exception("Not Implemented")
@@ -42,25 +43,34 @@ class RuleStrategyRespondSms(RuleStrategy):
         'msg': {'required': True},  # Mensaje a enviar
     }
 
+    @classmethod
     def is_valid_description(cls, description):
+        print (description)
+        print ("aca")
         return 'msg' in description
 
-    def _get_events(selg, from_date):
+    def _get_events(self, from_date):
         logs = LogDevice.objects.filter(
             date_created__gte=from_date,
             log_type=LOG_DEVICE_TYPE_SMS
         )
         # FILTRAR OTRAS COSAS QUE CORRESPONDA
+        # Q el numero sea uno de los definidos en 'numbers'
         return logs
 
     def _apply_rule(self, event):
+        from apps.rules.models import RuleInstance
         data = json.loads(self.rule.description)
-        LogAction.objects.create(
+        log = LogAction.objects.create(
             log_type=LOG_ACTION_TYPE_SMS,
             description=json.dumps({'msg': data['msg']}),
             device=self.rule.device,
             number=event.number,
             origin=ORIGIN_RULE
+        )
+        RuleInstance.objects.create(
+            rule=self.rule,
+            description=json.dumps({'actions': [log.id]})
         )
 
 

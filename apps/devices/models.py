@@ -68,7 +68,7 @@ class Device (models.Model):
                 device=self
             )
             #
-            # LANZAR YA, 0.5/1 SECOND, ASI ESPERA QUE TERMINA ESTO
+            # LANZAR APLICACION DE REGLA
             #
 
         if status.get('m') == 1:
@@ -134,7 +134,7 @@ class LogDevice (models.Model):
 
     def get_description(self):
         try:
-            return json.loads(serializer.instance.description)
+            return json.loads(self.description)
         except Exception:
             return None
 
@@ -149,6 +149,9 @@ class LogDevice (models.Model):
             self.status = LOG_DEVICE_STATUS_PRO
             self.save()
             self.__internal_treat_log()
+            #
+            # LANZAR APLICACION DE REGLA
+            #
             self.status = LOG_DEVICE_STATUS_OK
             self.save()
         except Exception as e:
@@ -188,13 +191,13 @@ class LogAction (models.Model):
 
     def get_description(self):
         try:
-            return json.loads(serializer.instance.description)
+            return json.loads(self.description)
         except Exception:
             return None
 
     def get_response(self):
         try:
-            return json.loads(serializer.instance.response)
+            return json.loads(self.response)
         except Exception:
             return None
 
@@ -209,6 +212,9 @@ class LogAction (models.Model):
             self.status = LOG_ACTION_STATUS_PRO
             self.save()
             self.__internal_execute_action()
+            #
+            # LANZAR APLICACION DE REGLA
+            #
             self.status = LOG_ACTION_STATUS_OK
             self.save()
         except Exception as e:
