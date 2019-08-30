@@ -6,7 +6,7 @@ from apps.devices.models import LogDevice, LogAction
 from apps.devices.constants import (
     ORIGIN_RULE,
     LOG_DEVICE_TYPE_SMS,
-    LOG_ACTION_TYPE_SMS,
+    LOG_ACTION_TYPE_SMS, LOG_ACTION_STATUS_INI
 )
 
 
@@ -45,8 +45,6 @@ class RuleStrategyRespondSms(RuleStrategy):
 
     @classmethod
     def is_valid_description(cls, description):
-        print (description)
-        print ("aca")
         return 'msg' in description
 
     def _get_events(self, from_date):
@@ -61,12 +59,13 @@ class RuleStrategyRespondSms(RuleStrategy):
     def _apply_rule(self, event):
         from apps.rules.models import RuleInstance
         data = json.loads(self.rule.description)
-        log = LogAction.objects.create(
-            log_type=LOG_ACTION_TYPE_SMS,
-            description=json.dumps({'msg': data['msg']}),
-            device=self.rule.device,
-            number=event.number,
-            origin=ORIGIN_RULE
+        log = LogAction.create(
+            LOG_ACTION_TYPE_SMS,
+            self.rule.device,
+            ORIGIN_RULE,
+            LOG_ACTION_STATUS_INI,
+            event.number,
+            json.dumps({'msg': data['msg']})
         )
         RuleInstance.objects.create(
             rule=self.rule,

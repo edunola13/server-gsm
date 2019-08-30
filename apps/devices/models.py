@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+import logging
 import json
 
 from django.utils import timezone
@@ -27,6 +28,7 @@ class Device (models.Model):
     index_sms = models.IntegerField(default=0)
     channel_i2c = models.CharField(max_length=10)
     last_connection = models.DateTimeField(null=True)
+    last_rule_date = models.DateTimeField(null=True, default=timezone.now)
     enabled = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -39,9 +41,10 @@ class Device (models.Model):
         gsm = self._get_client()
         status = gsm.get_status()
         if status.get('s', None) == 'error':
-            LogDevice.objects.create(
-                log_type=LOG_DEVICE_TYPE_ERR,
-                device=self
+            LogDevice.create(
+                LOG_DEVICE_TYPE_ERR,
+                self,
+                LOG_DEVICE_STATUS_OK
             )
             self.status = STATUS_ERR
             self.last_connection = timezone.now()
@@ -54,38 +57,35 @@ class Device (models.Model):
         self.save()
 
         if self.chip_status == CHIP_STATUS_IN_CALL:
-            LogDevice.objects.create(
-                log_type=LOG_DEVICE_TYPE_IN_CALL,
-                status=LOG_DEVICE_STATUS_OK,
-                device=self
+            LogDevice.create(
+                LOG_DEVICE_TYPE_IN_CALL,
+                self,
+                LOG_DEVICE_STATUS_OK
             )
 
         if status.get('r') == 1:
-            LogDevice.objects.create(
-                log_type=LOG_DEVICE_TYPE_CALL,
-                status=LOG_DEVICE_STATUS_OK,
-                number=status.get('n', None),
-                device=self
+            LogDevice.create(
+                LOG_DEVICE_TYPE_CALL,
+                self,
+                LOG_DEVICE_STATUS_OK,
+                status.get('n', None)
             )
-            #
-            # LANZAR APLICACION DE REGLA
-            #
 
         if status.get('m') == 1:
             new_index = int(status.get('i', 1))
             if new_index > self.index_sms:
                 for i in range(self.index_sms + 1, new_index + 1):
-                    LogDevice.objects.create(
-                        log_type=LOG_DEVICE_TYPE_NEWSMS,
-                        description=json.dumps({'index': str(i)}),
-                        device=self
+                    LogDevice.create(
+                        LOG_DEVICE_TYPE_NEWSMS,
+                        self,
+                        description=json.dumps({'index': str(i)})
                     )
             if new_index < self.index_sms:
                 for i in range(1, new_index + 1):
-                    LogDevice.objects.create(
-                        log_type=LOG_DEVICE_TYPE_NEWSMS,
-                        description=json.dumps({'index': str(i)}),
-                        device=self
+                    LogDevice.create(
+                        LOG_DEVICE_TYPE_NEWSMS,
+                        self,
+                        description=json.dumps({'index': str(i)})
                     )
             self.index_sms = new_index
             self.save()
@@ -100,13 +100,13 @@ class Device (models.Model):
             if sms.get('b', None) == '':
                 break
             if sms.get('b', None) != '':
+                LogDevice.create(
+                    LOG_DEVICE_TYPE_NEWSMS,
+                    self,
+                    description=json.dumps({'index': str(i)})
+                )
                 self.index_sms = index
                 self.save()
-                LogDevice.objects.create(
-                    log_type=LOG_DEVICE_TYPE_NEWSMS,
-                    description=json.dumps({'index': index}),
-                    device=self
-                )
             index += 1
 
     def delete_sms(self):
@@ -128,9 +128,26 @@ class LogDevice (models.Model):
     number = models.CharField(max_length=100, null=True)
     description = models.TextField(null=True)
 
+    date_ok = models.DateTimeField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     device = models.ForeignKey(Device, on_delete=models.PROTECT,)
+
+    @classmethod
+    def create(cls, log_type, device, status=LOG_DEVICE_STATUS_INI, number=None, description=None):
+        log = LogDevice.objects.create(
+            log_type=log_type,
+            status=status,
+            number=number,
+            description=description,
+            device=device
+        )
+        if log.status == 'ok':
+            log.date_ok = timezone.now()
+            log.save()
+            #
+            # LANZAR APLICACION DE REGLA
+            #
 
     def get_description(self):
         try:
@@ -149,14 +166,14 @@ class LogDevice (models.Model):
             self.status = LOG_DEVICE_STATUS_PRO
             self.save()
             self.__internal_treat_log()
+            self.status = LOG_DEVICE_STATUS_OK
+            self.save()
             #
             # LANZAR APLICACION DE REGLA
             #
-            self.status = LOG_DEVICE_STATUS_OK
-            self.save()
         except Exception as e:
             self.status = LOG_DEVICE_STATUS_ERR
-            print (e)
+            logging.error("TREAT_LOG log_device %d, error %s" % (self.id, e))
 
     def __internal_treat_log(self):
         gsm = self.device._get_client()
@@ -165,12 +182,12 @@ class LogDevice (models.Model):
             description = json.dumps(
                 gsm.get_sms(str(data.get('index', "1")))
             )
-            LogDevice.objects.create(
-                log_type=LOG_DEVICE_TYPE_SMS,
-                description=description,
-                status=LOG_DEVICE_STATUS_OK,
+            LogDevice.create(
+                LOG_DEVICE_TYPE_SMS,
+                self,
+                LOG_DEVICE_STATUS_OK,
                 # number= SACAR NUMERO DE DESCRIPTION
-                device=self.device
+                description=description
             )
 
 
@@ -185,9 +202,27 @@ class LogAction (models.Model):
     description = models.TextField(null=True)
     response = models.TextField(null=True)
 
+    date_ok = models.DateTimeField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     device = models.ForeignKey(Device, on_delete=models.PROTECT,)
+
+    @classmethod
+    def create(cls, log_type, device, origin, status=LOG_ACTION_STATUS_INI, number=None, description=None):
+        log = LogAction.objects.create(
+            log_type=log_type,
+            origin=origin,
+            status=status,
+            number=number,
+            description=description,
+            device=device
+        )
+        if log.status == 'ok':
+            log.date_ok = timezone.now()
+            log.save()
+            #
+            # LANZAR APLICACION DE REGLA
+            #
 
     def get_description(self):
         try:
@@ -212,14 +247,14 @@ class LogAction (models.Model):
             self.status = LOG_ACTION_STATUS_PRO
             self.save()
             self.__internal_execute_action()
+            self.status = LOG_ACTION_STATUS_OK
+            self.save()
             #
             # LANZAR APLICACION DE REGLA
             #
-            self.status = LOG_ACTION_STATUS_OK
-            self.save()
         except Exception as e:
             self.status = LOG_ACTION_STATUS_ERR
-            print (e)
+            logging.error("TREAT_LOG log_action %d, error %s" % (self.id, e))
 
     def __internal_execute_action(self):
         gsm = self.device._get_client()
