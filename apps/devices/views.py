@@ -117,7 +117,7 @@ class LogActionViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(origin=ORIGIN_API)
-        execute_action.apply_async([serializer.instance.id])
+        execute_action.apply_async(args=[serializer.instance.id], countdown=1)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
