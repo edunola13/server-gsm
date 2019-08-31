@@ -107,7 +107,7 @@ class LogActionViewSet(viewsets.ModelViewSet):
     __basic_fields = ('number',)
     filter_fields = __basic_fields + ('origin', 'status', 'log_type', 'created_at')
     search_fields = __basic_fields
-    ordering_fields = __basic_fields
+    ordering_fields = __basic_fields + ('created_at',)
     ordering = 'created_at'
 
     def get_serializer_class(self):

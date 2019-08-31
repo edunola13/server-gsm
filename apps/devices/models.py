@@ -75,18 +75,20 @@ class Device (models.Model):
             new_index = int(status.get('i', 1))
             if new_index > self.index_sms:
                 for i in range(self.index_sms + 1, new_index + 1):
-                    LogDevice.create(
+                    log = LogDevice.create(
                         LOG_DEVICE_TYPE_NEWSMS,
                         self,
                         description=json.dumps({'index': str(i)})
                     )
+                    log.launch_task()
             if new_index < self.index_sms:
                 for i in range(1, new_index + 1):
-                    LogDevice.create(
+                    log = LogDevice.create(
                         LOG_DEVICE_TYPE_NEWSMS,
                         self,
                         description=json.dumps({'index': str(i)})
                     )
+                    log.launch_task()
             self.index_sms = new_index
             self.save()
 
@@ -100,13 +102,14 @@ class Device (models.Model):
             if sms.get('b', None) == '':
                 break
             if sms.get('b', None) != '':
-                LogDevice.create(
+                log = LogDevice.create(
                     LOG_DEVICE_TYPE_NEWSMS,
                     self,
                     description=json.dumps({'index': str(i)})
                 )
                 self.index_sms = index
                 self.save()
+                log.launch_task()
             index += 1
 
     def delete_sms(self):
@@ -142,16 +145,32 @@ class LogDevice (models.Model):
             description=description,
             device=device
         )
-        if log.status == 'ok':
+        if log.log_type == LOG_DEVICE_TYPE_SMS:
+            log.number = log.get_number_of_sms()
+            log.save()
+        if log.status == 'OK':
             log.date_ok = timezone.now()
             log.save()
             #
             # LANZAR APLICACION DE REGLA
             #
+        return log
 
     def get_description(self):
         try:
             return json.loads(self.description)
+        except Exception:
+            return None
+
+    def get_number_of_sms(self):
+        try:
+            return self.get_description()['b'].split('\r\n')[0].split(',')[1].strip("'")
+        except Exception:
+            return None
+
+    def get_msg_of_sms(self):
+        try:
+            return self.get_description()['b'].split('\r\n')[1]
         except Exception:
             return None
 
@@ -160,6 +179,10 @@ class LogDevice (models.Model):
 
     def can_treat(self):
         return self.status in [LOG_DEVICE_STATUS_INI, LOG_DEVICE_STATUS_ERR]
+
+    def launch_task(self):
+        from apps.devices.tasks import treat_log_device
+        treat_log_device.apply_async([self.id])
 
     def treat_log(self):
         try:
@@ -173,21 +196,21 @@ class LogDevice (models.Model):
             #
         except Exception as e:
             self.status = LOG_DEVICE_STATUS_ERR
+            self.save()
             logging.error("TREAT_LOG log_device %d, error %s" % (self.id, e))
 
     def __internal_treat_log(self):
         gsm = self.device._get_client()
         if self.log_type == LOG_DEVICE_TYPE_NEWSMS:
             data = json.loads(self.description)
-            description = json.dumps(
-                gsm.get_sms(str(data.get('index', "1")))
-            )
+            description = gsm.get_sms(str(data.get('index', "1")))
+            description['index'] = data.get('index', "1")
+            description['log_device'] = self.id
             LogDevice.create(
                 LOG_DEVICE_TYPE_SMS,
-                self,
+                self.device,
                 LOG_DEVICE_STATUS_OK,
-                # number= SACAR NUMERO DE DESCRIPTION
-                description=description
+                description=json.dumps(description)
             )
 
 
@@ -217,12 +240,13 @@ class LogAction (models.Model):
             description=description,
             device=device
         )
-        if log.status == 'ok':
+        if log.status == 'OK':
             log.date_ok = timezone.now()
             log.save()
             #
             # LANZAR APLICACION DE REGLA
             #
+        return log
 
     def get_description(self):
         try:
@@ -254,10 +278,12 @@ class LogAction (models.Model):
             #
         except Exception as e:
             self.status = LOG_ACTION_STATUS_ERR
+            self.save()
             logging.error("TREAT_LOG log_action %d, error %s" % (self.id, e))
 
     def __internal_execute_action(self):
         gsm = self.device._get_client()
+        print (self.log_type)
         if self.log_type == LOG_ACTION_TYPE_CALL:
             self.response = json.dumps(gsm.make_call(self.number))
         if self.log_type == LOG_ACTION_TYPE_ANSW:
@@ -265,6 +291,7 @@ class LogAction (models.Model):
         if self.log_type == LOG_ACTION_TYPE_HOFF:
             self.response = json.dumps(gsm.hangoff_call())
         if self.log_type == LOG_ACTION_TYPE_SMS:
+            print ("Aca")
             data = json.loads(self.description)
             self.response = json.dumps(
                 gsm.send_sms(self.number, data.get('msg', ''))

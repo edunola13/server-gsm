@@ -64,7 +64,7 @@ class RuleStrategyRespondSms(RuleStrategy):
             self.rule.device,
             ORIGIN_RULE,
             LOG_ACTION_STATUS_INI,
-            event.number,
+            event.get_number_of_sms(),
             json.dumps({'msg': data['msg']})
         )
         RuleInstance.objects.create(
