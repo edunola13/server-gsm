@@ -28,7 +28,6 @@ class Device (models.Model):
     index_sms = models.IntegerField(default=0)
     channel_i2c = models.CharField(max_length=10)
     last_connection = models.DateTimeField(null=True)
-    last_rule_date = models.DateTimeField(null=True, default=timezone.now)
     enabled = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -151,9 +150,7 @@ class LogDevice (models.Model):
         if log.status == 'OK':
             log.date_ok = timezone.now()
             log.save()
-            #
-            # LANZAR APLICACION DE REGLA
-            #
+            self.launch_rule()
         return log
 
     def get_description(self):
@@ -180,20 +177,23 @@ class LogDevice (models.Model):
     def can_treat(self):
         return self.status in [LOG_DEVICE_STATUS_INI, LOG_DEVICE_STATUS_ERR]
 
-    def launch_task(self):
+    def launch_task(self, countdown=0.25):
         from apps.devices.tasks import treat_log_device
-        treat_log_device.apply_async([self.id])
+        treat_log_device.apply_async([self.id], countdown=countdown)
+
+    def launch_rule(self, countdown=0.25):
+        from apps.devices.tasks import execute_rule_log_device
+        execute_rule_log_device.apply_async([self.id], countdown=countdown)
 
     def treat_log(self):
         try:
             self.status = LOG_DEVICE_STATUS_PRO
             self.save()
             self.__internal_treat_log()
+            self.date_ok = timezone.now()
             self.status = LOG_DEVICE_STATUS_OK
             self.save()
-            #
-            # LANZAR APLICACION DE REGLA
-            #
+            self.launch_rule()
         except Exception as e:
             self.status = LOG_DEVICE_STATUS_ERR
             self.save()
@@ -243,9 +243,7 @@ class LogAction (models.Model):
         if log.status == 'OK':
             log.date_ok = timezone.now()
             log.save()
-            #
-            # LANZAR APLICACION DE REGLA
-            #
+            self.launch_rule()
         return log
 
     def get_description(self):
@@ -266,16 +264,23 @@ class LogAction (models.Model):
     def can_execute(self):
         return self.status in [LOG_ACTION_STATUS_INI, LOG_ACTION_STATUS_ERR]
 
+    def launch_task(self, countdown=1):
+        from apps.devices.tasks import execute_action
+        execute_action.apply_async([self.id], countdown=countdown)
+
+    def launch_rule(self, countdown=0.25):
+        from apps.devices.tasks import execute_rule_log_action
+        execute_rule_log_action.apply_async([self.id], countdown=countdown)
+
     def execute_action(self):
         try:
             self.status = LOG_ACTION_STATUS_PRO
             self.save()
             self.__internal_execute_action()
+            self.date_ok = timezone.now()
             self.status = LOG_ACTION_STATUS_OK
             self.save()
-            #
-            # LANZAR APLICACION DE REGLA
-            #
+            self.launch_rule()
         except Exception as e:
             self.status = LOG_ACTION_STATUS_ERR
             self.save()
@@ -291,7 +296,6 @@ class LogAction (models.Model):
         if self.log_type == LOG_ACTION_TYPE_HOFF:
             self.response = json.dumps(gsm.hangoff_call())
         if self.log_type == LOG_ACTION_TYPE_SMS:
-            print ("Aca")
             data = json.loads(self.description)
             self.response = json.dumps(
                 gsm.send_sms(self.number, data.get('msg', ''))

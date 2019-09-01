@@ -20,8 +20,6 @@ from apps.rules.serializers import (
     RuleSerializer, RuleInstanceSerializer)
 from apps.devices.constants import ORIGIN_API
 
-from apps.devices.tasks import execute_action
-
 
 class DeviceViewSet(viewsets.ModelViewSet):
     permission_classes = ()  # (IsAdminUser,)
@@ -97,6 +95,14 @@ class LogDeviceViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         serializer = LogDeviceSerializer(log)
         return Response(serializer.data)
 
+    @action(methods=['post'], detail=True)
+    def launch(self, request, pk=None):
+        log = self.get_object()
+        if not log.can_update():
+            log.launch_task()
+        serializer = LogDeviceSerializer(log)
+        return Response(serializer.data)
+
 
 class LogActionViewSet(viewsets.ModelViewSet):
     permission_classes = ()  # (IsAdminUser,)
@@ -117,7 +123,7 @@ class LogActionViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(origin=ORIGIN_API)
-        execute_action.apply_async(args=[serializer.instance.id], countdown=1)
+        serializer.instance.launch_task()
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -156,5 +162,13 @@ class LogActionViewSet(viewsets.ModelViewSet):
         action.status = status
         action.save()
 
+        serializer = LogActionSerializer(action)
+        return Response(serializer.data)
+
+    @action(methods=['post'], detail=True)
+    def launch(self, request, pk=None):
+        action = self.get_object()
+        if not action.can_update():
+            action.launch_task()
         serializer = LogActionSerializer(action)
         return Response(serializer.data)

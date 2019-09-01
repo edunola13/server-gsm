@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import json
 
 from django.db import models
+from django.contrib.contenttypes.models import ContentType
 
 from .constants import *
 from .strategy import STRATEGY_CLASS_DEV, STRATEGY_CLASS_ACT
@@ -29,9 +30,9 @@ class Rule (models.Model):
         related_name='rules',
         on_delete=models.PROTECT,)  # Puede no tener device
 
-    def check_rule(self, from_date):
+    def check_rule(self, event):
         strategy = self._get_strategy()
-        strategy.check_rule(from_date)
+        strategy.check_rule(event)
 
     def _get_strategy():
         klass = STRATEGY_CLASS_DEV[self.strategy] if RULE_TYPE_DEVICE == self.rule_type else STRATEGY_CLASS_ACT[self.strategy]
@@ -49,6 +50,10 @@ class RuleInstance (models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     rule = models.ForeignKey(Rule, on_delete=models.PROTECT,)
+
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    thrower = GenericForeignKey('content_type', 'object_id')
 
     def get_description(self):
         try:

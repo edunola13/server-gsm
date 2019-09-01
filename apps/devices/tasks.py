@@ -11,10 +11,14 @@ from apps.rules.models import Rule
 from server.redis_lock import Lock
 
 
+#
+# PERIODIC TASKS
+#
 @task()  # 15 Segs
 def update_status(id):
     try:
-        # Acorto retry y delay para que basicamente ignoremos la task asi no se apilan
+        # Acorto retry y delay para que basicamente
+        # ignoremos la task asi no se apilan
         with Lock('TASK_DEVICE_ID_%d' % id, 2000, 0, 0.2):
             device = Device.objects.get(id=id)
             device.update_status()
@@ -34,6 +38,10 @@ def check_new_sms(id):
 
 @task()  # Una vez al dia / No ejecutar al mismo tiempo que update_status
 def delete_sms(id):
+    #
+    # MAXIMO DE SMS = 30, DESPUES GUARDA EN OTROS LADOS
+    # ELIMINAR CUANDO SE LLEGUE A 15
+    #
     try:
         with Lock('TASK_DEVICE_ID_%d' % id, 60000):
             device = Device.objects.get(id=id)
@@ -42,6 +50,44 @@ def delete_sms(id):
         logging.error("DELETE_SMS device %d, error %s" % (id, e))
 
 
+#
+# EXECUTE LOGS DEVICES / ACTIONS
+#
+@task(
+    max_retries=3,
+    default_retry_delay=2 * 60,
+    autoretry_for=(Exception,)
+)
+def treat_log_device(action_id):
+    try:
+        log = LogDevice.objects.get(id=action_id)
+        if log.can_treat():
+            log.treat_log()
+            if log.status != 'OK':
+                raise Exception("Status is not finish")
+    except Exception as e:
+        logging.error("TREAT_LOG_DEVICE action %d, error %s" % (action_id, e))
+
+
+@task(
+    max_retries=3,
+    default_retry_delay=2 * 60,
+    autoretry_for=(Exception,)
+)
+def execute_action(action_id):
+    try:
+        action = LogAction.objects.get(id=action_id)
+        if action.can_execute():
+            action.execute_action()
+            if action.status != 'OK':
+                raise Exception("Status is not finish")
+    except Exception as e:
+        logging.error("EXECUTE_ACTION action %d, error %s" % (action_id, e))
+
+
+#
+# CHECK LOST LOGS DEVICES / ACTIONS
+#
 @task()
 def check_pending_log_devices():
     date = datetime.now() - timedelta(min=10)
@@ -55,20 +101,6 @@ def check_pending_log_devices():
         time += 5
 
 
-@task(
-    max_retries=3,
-    default_retry_delay=2 * 60,
-    autoretry_for=(Exception,)
-)
-def treat_log_device(action_id):
-    try:
-        log = LogDevice.objects.get(id=action_id)
-        if log.can_treat():
-            log.treat_log()
-    except Exception as e:
-        logging.error("TREAT_LOG_DEVICE action %d, error %s" % (action_id, e))
-
-
 @task()
 def check_pending_log_actions():
     date = datetime.now() - timedelta(min=10)
@@ -80,35 +112,42 @@ def check_pending_log_actions():
         execute_action.apply_async([log.id], countdown=30)
 
 
+#
+# EXECUTE RULES
+#
 @task(
     max_retries=3,
     default_retry_delay=2 * 60,
     autoretry_for=(Exception,)
 )
-def execute_action(action_id):
-    try:
-        action = LogAction.objects.get(id=action_id)
-        if action.can_execute():
-            action.execute_action()
-    except Exception as e:
-        logging.error("EXECUTE_ACTION action %d, error %s" % (action_id, e))
+def execute_rule_log_device(log_id):
+    log = LogDevice.objects.get(id=log_id)
 
-
-@task()
-def execute_rules(device_id):
-    #
-    # VER SI APLICAR ASI DE FORMA QUE BUSQUE TODAS LAS ACCIONES QUE PASARON O QUE PASEN
-    # DIRECTAMENTE EL ID DE LA ACCION
-    #
     rules = Rule.objects.filter(
-        device__id=device_id,
+        device=log.device,
         enabled=True
     )
-    device = Device.objects.get(id=id)
-    device.last_rule_date = timezone.now()
-    device.save()
     for rule in rules:
         try:
-            rule.check_rule(rule.device.last_rule_date)
+            rule.check_rule(log)
         except Exception as e:
-            logging.error("EXECUTE_RULES device %d, error %s" % (device_id, e))
+            logging.error("EXECUTE_RULES log_device %d, error %s" % (log_id, e))
+
+
+@task(
+    max_retries=3,
+    default_retry_delay=2 * 60,
+    autoretry_for=(Exception,)
+)
+def execute_rule_log_action(log_id):
+    log = LogAction.objects.get(id=log_id)
+
+    rules = Rule.objects.filter(
+        device=log.device,
+        enabled=True
+    )
+    for rule in rules:
+        try:
+            rule.check_rule(log)
+        except Exception as e:
+            logging.error("EXECUTE_RULES log_action %d, error %s" % (log_id, e))
