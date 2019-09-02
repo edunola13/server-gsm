@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 from apps.devices.models import Device, LogAction, LogDevice
 from apps.rules.models import Rule
+from apps.rules.constants import RULE_TYPE_DEVICE, RULE_TYPE_ACTION
 
 from server.redis_lock import Lock
 
@@ -124,6 +125,7 @@ def execute_rule_log_device(log_id):
     log = LogDevice.objects.get(id=log_id)
 
     rules = Rule.objects.filter(
+        rule_type=RULE_TYPE_DEVICE,
         device=log.device,
         enabled=True
     )
@@ -143,6 +145,7 @@ def execute_rule_log_action(log_id):
     log = LogAction.objects.get(id=log_id)
 
     rules = Rule.objects.filter(
+        rule_type=RULE_TYPE_ACTION,
         device=log.device,
         enabled=True
     )
