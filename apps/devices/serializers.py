@@ -28,7 +28,7 @@ class LogDeviceSerializer(serializers.ModelSerializer):
         model = LogDevice
         fields = ('id', 'status', 'log_type',
                   'number', 'description',
-                  'device', 'created_at')
+                  'device', 'date_ok', 'created_at')
 
     def get_description(self, obj):
         return obj.get_description()
@@ -42,7 +42,7 @@ class LogActionSerializer(serializers.ModelSerializer):
     class Meta:
         model = LogAction
         fields = ('id', 'status', 'origin', 'log_type',
-                  'number', 'description',
+                  'number', 'description', 'date_ok',
                   'response', 'device', 'created_at')
 
     def get_description(self, obj):

@@ -62,7 +62,8 @@ class RuleInstanceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RuleInstance
-        fields = ('id', 'description', 'rule', 'created_at')
+        fields = ('id', 'description', 'rule',
+                  'content_type', 'object_id', 'created_at')
 
     def get_description(self, obj):
         return obj.get_description()

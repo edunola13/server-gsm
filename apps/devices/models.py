@@ -150,7 +150,7 @@ class LogDevice (models.Model):
         if log.status == 'OK':
             log.date_ok = timezone.now()
             log.save()
-            self.launch_rule()
+            log.launch_rule()
         return log
 
     def get_description(self):
@@ -243,7 +243,7 @@ class LogAction (models.Model):
         if log.status == 'OK':
             log.date_ok = timezone.now()
             log.save()
-            self.launch_rule()
+            log.launch_rule()
         return log
 
     def get_description(self):

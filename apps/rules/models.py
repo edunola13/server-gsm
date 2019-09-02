@@ -4,6 +4,7 @@ import json
 
 from django.db import models
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 
 from .constants import *
 from .strategy import STRATEGY_CLASS_DEV, STRATEGY_CLASS_ACT
@@ -34,7 +35,7 @@ class Rule (models.Model):
         strategy = self._get_strategy()
         strategy.check_rule(event)
 
-    def _get_strategy():
+    def _get_strategy(self):
         klass = STRATEGY_CLASS_DEV[self.strategy] if RULE_TYPE_DEVICE == self.rule_type else STRATEGY_CLASS_ACT[self.strategy]
         return klass(self)
 
@@ -51,8 +52,8 @@ class RuleInstance (models.Model):
 
     rule = models.ForeignKey(Rule, on_delete=models.PROTECT,)
 
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True)
+    object_id = models.PositiveIntegerField(null=True)
     thrower = GenericForeignKey('content_type', 'object_id')
 
     def get_description(self):
