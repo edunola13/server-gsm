@@ -73,9 +73,9 @@ class LogDeviceViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
     serializer_class = LogDeviceSerializer
 
     __basic_fields = ('number',)
-    filter_fields = __basic_fields + ('status', 'log_type', 'created_at')
+    filter_fields = __basic_fields + ('status', 'log_type', 'date_ok', 'created_at')
     search_fields = __basic_fields
-    ordering_fields = __basic_fields + ('created_at',)
+    ordering_fields = __basic_fields + ('date_ok', 'created_at',)
     ordering = 'created_at'
 
     @action(methods=['put'], detail=True)
@@ -103,6 +103,14 @@ class LogDeviceViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         serializer = LogDeviceSerializer(log)
         return Response(serializer.data)
 
+    @action(methods=['post'], detail=True)
+    def launch_rule(self, request, pk=None):
+        log = self.get_object()
+        if log.status == 'OK':
+            log.launch_rule()
+        serializer = LogDeviceSerializer(log)
+        return Response(serializer.data)
+
 
 class LogActionViewSet(viewsets.ModelViewSet):
     permission_classes = ()  # (IsAdminUser,)
@@ -111,9 +119,9 @@ class LogActionViewSet(viewsets.ModelViewSet):
     serializer_class = LogActionSerializer
 
     __basic_fields = ('number',)
-    filter_fields = __basic_fields + ('origin', 'status', 'log_type', 'created_at')
+    filter_fields = __basic_fields + ('origin', 'status', 'log_type', 'date_ok', 'created_at')
     search_fields = __basic_fields
-    ordering_fields = __basic_fields + ('created_at',)
+    ordering_fields = __basic_fields + ('date_ok', 'created_at',)
     ordering = 'created_at'
 
     def get_serializer_class(self):
@@ -170,5 +178,13 @@ class LogActionViewSet(viewsets.ModelViewSet):
         action = self.get_object()
         if not action.can_update():
             action.launch_task()
+        serializer = LogActionSerializer(action)
+        return Response(serializer.data)
+
+    @action(methods=['post'], detail=True)
+    def launch_rule(self, request, pk=None):
+        action = self.get_object()
+        if action.status == 'OK':
+            action.launch_rule()
         serializer = LogActionSerializer(action)
         return Response(serializer.data)

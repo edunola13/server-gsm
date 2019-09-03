@@ -35,6 +35,10 @@ class Rule (models.Model):
         strategy = self._get_strategy()
         strategy.check_rule(event)
 
+    def apply_rule(self, event):
+        strategy = self._get_strategy()
+        strategy._apply_rule(event)
+
     def _get_strategy(self):
         klass = STRATEGY_CLASS_DEV[self.strategy] if RULE_TYPE_DEVICE == self.rule_type else STRATEGY_CLASS_ACT[self.strategy]
         return klass(self)
