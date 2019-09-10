@@ -98,7 +98,7 @@ class LogDeviceViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
     @action(methods=['post'], detail=True)
     def launch(self, request, pk=None):
         log = self.get_object()
-        if not log.can_update():
+        if log.can_update():
             log.launch_task()
         serializer = LogDeviceSerializer(log)
         return Response(serializer.data)
@@ -176,7 +176,7 @@ class LogActionViewSet(viewsets.ModelViewSet):
     @action(methods=['post'], detail=True)
     def launch(self, request, pk=None):
         action = self.get_object()
-        if not action.can_update():
+        if action.can_update():
             action.launch_task()
         serializer = LogActionSerializer(action)
         return Response(serializer.data)

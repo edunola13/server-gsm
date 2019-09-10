@@ -191,7 +191,7 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 REDIS_BLOCKER = [
-    {"host": "localhost", "port": 6379, "db": 0},
+    {"host": "localhost", "port": 6379, "db": 1},
 ]
 REDIS_BLOCKER_RETRY = 10
 REDIS_BLOCKER_DELAY = 0.5

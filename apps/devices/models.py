@@ -198,6 +198,7 @@ class LogDevice (models.Model):
             self.status = LOG_DEVICE_STATUS_ERR
             self.save()
             logging.error("TREAT_LOG log_device %d, error %s" % (self.id, e))
+            raise e
 
     def __internal_treat_log(self):
         gsm = self.device._get_client()
