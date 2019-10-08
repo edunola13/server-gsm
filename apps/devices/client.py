@@ -60,7 +60,7 @@ class I2CClient():
         raise TooManyAttempt('Too many attempt waiting')
 
     def long_receive(self, action_write, action_read,
-                     attempt=10, interval=0.25):
+                     attempt=10, interval=1):
         part, of, body_str = self.__part_receive(
             action_write, action_read, 1, 1,
             attempt, interval)
@@ -76,7 +76,7 @@ class I2CClient():
             i += 1
         return json.loads(body_str.replace('\x00', ''), strict=False)
 
-    def receive(self, action, attempt=10, interval=0.25):
+    def receive(self, action, attempt=10, interval=1):
         n = 1
         while n <= attempt:
             data = self.__read(action)
@@ -143,9 +143,8 @@ class GSMClient(I2CClient):
         return 'ACTION_DEVICE_%d' % self.address
 
     def get_status(self):
-        print ("INTERNAL BLOQUEO")
         with Lock(self._name_resource(), 2000):
-            print ("Lo tengo")
+            print ("Tengo Bloqueo")
             self.send(self.ACTION_GET_STA, '')
             time.sleep(0.5)
             return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ)
@@ -176,21 +175,21 @@ class GSMClient(I2CClient):
             return self.receive(self.RESPONSE_HANGOFF)
 
     def send_sms(self, number, msg):
-        with Lock(self._name_resource(), 10000):
+        with Lock(self._name_resource(), 60000):
             body = json.dumps(
                 {'n': number, 'b': msg},
                 separators=(',', ':'))
             self.send(self.ACTION_SEND_SMS, body)
-            time.sleep(5)
+            time.sleep(2)
             return self.receive(self.RESPONSE_SEND_SMS, 20)
 
     def get_sms(self, index):
-        with Lock(self._name_resource(), 10000):
+        with Lock(self._name_resource(), 20000):
             body = json.dumps(
                 {'i': index},
                 separators=(',', ':'))
             self.send(self.ACTION_GET_SMS, body)
-            time.sleep(1.5)
+            time.sleep(2.5)
             return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ, 20)
 
     def delete_sms(self):

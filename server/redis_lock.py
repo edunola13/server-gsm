@@ -17,6 +17,7 @@ class Lock():
         self.ttl = ttl
         retry = retry if retry else settings.REDIS_BLOCKER_RETRY
         delay = delay if delay else settings.REDIS_BLOCKER_DELAY
+        print (delay)
         self.redis = RedLock(key, settings.REDIS_BLOCKER, retry, delay, ttl)
 
     def __enter__(self):
