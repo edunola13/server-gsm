@@ -21,17 +21,8 @@ class Lock():
         self.redis = RedLock(key, settings.REDIS_BLOCKER, retry, delay, ttl)
 
     def __enter__(self):
-        self.redis.acquire()
+        if not self.redis.acquire():
+            raise RedisLockFail("Can't get block")
 
     def __exit__(self, type, value, traceback):
         self.redis.release()
-
-    # def __enter__(self):
-    #     self.lock = self.redis.lock(self.key, self.ttl)
-    #     if self.lock is False:
-    #         raise RedisLockFail("Can't get block")
-    #     return self.lock
-
-    # def __exit__(self, type, value, traceback):
-    #     if self.lock:
-    #         self.redis.unlock(self.lock)
