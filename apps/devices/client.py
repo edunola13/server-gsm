@@ -189,7 +189,7 @@ class GSMClient(I2CClient):
             return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ, 20, 1)
 
     def delete_sms(self):
-        with Lock(self._name_resource(), 10000):
+        with Lock(self._name_resource(), 20000):
             self.send(self.ACTION_DEL_SMS, '')
             time.sleep(10)
             return self.receive(self.RESPONSE_DEL_SMS)

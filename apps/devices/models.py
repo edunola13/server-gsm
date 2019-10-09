@@ -92,7 +92,7 @@ class Device (models.Model):
             self.save()
 
             if new_index > 20:
-                self.launch_delete_sms()
+                self.launch_delete_sms(10)
 
     def check_new_sms(self):
         gsm = self._get_client()

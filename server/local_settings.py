@@ -43,11 +43,11 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': 60 * 5 + 10,  # 2:10 minutes:seconds
         'args': (1,)  # ID of device
     },
-    'device_delete_sms-1': {
-        'task': 'apps.devices.tasks.delete_sms',
-        'schedule': crontab(hour=7, minute=30),  # All days at 7:30
-        'args': (1,)  # ID of device
-    },
+    # 'device_delete_sms-1': {
+    #     'task': 'apps.devices.tasks.delete_sms',
+    #     'schedule': crontab(hour=7, minute=30),  # All days at 7:30
+    #     'args': (1,)  # ID of device
+    # },
     'check_check_pending_log_devices-1': {
         'task': 'apps.devices.tasks.check_pending_log_devices',
         'schedule': 60 * 5  # 5 Minutes
