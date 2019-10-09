@@ -91,6 +91,9 @@ class Device (models.Model):
             self.index_sms = new_index
             self.save()
 
+            if new_index > 20:
+                self.launch_delete_sms()
+
     def check_new_sms(self):
         gsm = self._get_client()
         index = self.index_sms + 1
@@ -119,6 +122,10 @@ class Device (models.Model):
         # Reseteo el indice
         self.index_sms = 0
         self.save()
+
+    def launch_delete_sms(self, countdown=0.25):
+        from apps.devices.tasks import delete_sms
+        delete_sms.apply_async([self.id], countdown=countdown)
 
 
 class LogDevice (models.Model):
@@ -289,7 +296,7 @@ class LogAction (models.Model):
 
     def __internal_execute_action(self):
         gsm = self.device._get_client()
-        print (self.log_type)
+
         if self.log_type == LOG_ACTION_TYPE_CALL:
             self.response = json.dumps(gsm.make_call(self.number))
         if self.log_type == LOG_ACTION_TYPE_ANSW:

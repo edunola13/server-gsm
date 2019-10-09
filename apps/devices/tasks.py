@@ -19,17 +19,12 @@ from server.redis_lock import Lock
 def update_status(id):
     # Acorto retry y delay para que basicamente
     # ignoremos la task asi no se apilan
-    print ("-------")
-    print ("EMPIEZO")
-    with Lock('TASK_DEVICE_ID_%d' % id, 2000, 0, 0.2):
-        print ("Tengo Bloqueo")
-        device = Device.objects.get(id=id)
-        device.update_status()
-        print ("LIBERANDO")
-    print ("FIN")
-    print ("")
-    #except Exception as e:
-    #    logging.error("UPDATE_STATUS device %d, error %s" % (id, e))
+    try:
+        with Lock('TASK_DEVICE_ID_%d' % id, 4000, 0, 0.2):
+            device = Device.objects.get(id=id)
+            device.update_status()
+    except Exception as e:
+        logging.error("UPDATE_STATUS device %d, error %s" % (id, e))
 
 
 @task()  # 5 Mins / No ejecutar al mismo tiempo que update_status
@@ -46,7 +41,6 @@ def check_new_sms(id):
 def delete_sms(id):
     #
     # MAXIMO DE SMS = 30, DESPUES GUARDA EN OTROS LADOS
-    # ELIMINAR CUANDO SE LLEGUE A 15
     #
     try:
         with Lock('TASK_DEVICE_ID_%d' % id, 60000):

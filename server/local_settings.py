@@ -35,27 +35,27 @@ DATABASES = {
 CELERY_BEAT_SCHEDULE = {
     'device-1': {
         'task': 'apps.devices.tasks.update_status',
-        'schedule': 10.0,  # 15 seconds
+        'schedule': 20.0,  # 20 seconds
         'args': (1,)  # ID of device
     },
-    # 'device_check_new_sms-1': {
-    #     'task': 'apps.devices.tasks.check_new_sms',
-    #     'schedule': 60 * 2 + 10,  # 2:10 minutes:seconds
-    #     'args': (1,)  # ID of device
-    # },
-    # 'device_delete_sms-1': {
-    #     'task': 'apps.devices.tasks.delete_sms',
-    #     'schedule': crontab(hour=7, minute=30),  # All days at 7:30
-    #     'args': (1,)  # ID of device
-    # },
-    # 'check_check_pending_log_devices-1': {
-    #     'task': 'apps.devices.tasks.check_pending_log_devices',
-    #     'schedule': 60 * 5  # 5 Minutes
-    # },
-    # 'check_check_pending_log_actions-1': {
-    #     'task': 'apps.devices.tasks.check_pending_log_actions',
-    #     'schedule': 60 * 5  # 5 Minutes
-    # }
+    'device_check_new_sms-1': {
+        'task': 'apps.devices.tasks.check_new_sms',
+        'schedule': 60 * 5 + 10,  # 2:10 minutes:seconds
+        'args': (1,)  # ID of device
+    },
+    'device_delete_sms-1': {
+        'task': 'apps.devices.tasks.delete_sms',
+        'schedule': crontab(hour=7, minute=30),  # All days at 7:30
+        'args': (1,)  # ID of device
+    },
+    'check_check_pending_log_devices-1': {
+        'task': 'apps.devices.tasks.check_pending_log_devices',
+        'schedule': 60 * 5  # 5 Minutes
+    },
+    'check_check_pending_log_actions-1': {
+        'task': 'apps.devices.tasks.check_pending_log_actions',
+        'schedule': 60 * 5  # 5 Minutes
+    }
 }
 
 SWAGGER_SETTINGS = {

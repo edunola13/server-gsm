@@ -3,6 +3,7 @@
 import smbus2 as smbus
 import json
 import time
+import logging
 
 from server.redis_lock import Lock
 
@@ -52,15 +53,14 @@ class I2CClient():
                     time.sleep(interval)
                     continue
             except Exception:
-                print ("Body:")
-                print (body)
+                logging.error("__part_receive body: %s" % (body))
                 # No es una respuesta completa, eso quiere decir que esta bien
                 pass
             return part, of, body
         raise TooManyAttempt('Too many attempt waiting')
 
     def long_receive(self, action_write, action_read,
-                     attempt=10, interval=1):
+                     attempt=10, interval=0.5):
         part, of, body_str = self.__part_receive(
             action_write, action_read, 1, 1,
             attempt, interval)
@@ -70,13 +70,11 @@ class I2CClient():
             part, of, body = self.__part_receive(
                 action_write, action_read, part, of, attempt, interval)
             body_str += body
-            print ("Va")
-            print (part)
-            print (of)
+            logging.debug("long_receive part: %s, of; %s" % (part, of))
             i += 1
         return json.loads(body_str.replace('\x00', ''), strict=False)
 
-    def receive(self, action, attempt=10, interval=1):
+    def receive(self, action, attempt=10, interval=0.5):
         n = 1
         while n <= attempt:
             data = self.__read(action)
@@ -94,8 +92,7 @@ class I2CClient():
                     continue
                 return json_data
             except Exception:
-                print ("Error:")
-                print (body)
+                logging.error("receive body: %s" % (body))
         raise TooManyAttempt('Too many attempt waiting')
 
     def send(self, action, body):
@@ -144,7 +141,6 @@ class GSMClient(I2CClient):
 
     def get_status(self):
         with Lock(self._name_resource(), 2000):
-            print ("Tengo Bloqueo")
             self.send(self.ACTION_GET_STA, '')
             time.sleep(0.5)
             return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ)
@@ -156,20 +152,20 @@ class GSMClient(I2CClient):
             return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ)
 
     def make_call(self, number):
-        with Lock(self._name_resource(), 4000):
+        with Lock(self._name_resource(), 5000):
             body = json.dumps({'n': number}, separators=(',', ':'))
             self.send(self.ACTION_CALL, body)
             time.sleep(1)
             return self.receive(self.RESPONSE_CALL)
 
     def answer_call(self):
-        with Lock(self._name_resource(), 4000):
+        with Lock(self._name_resource(), 5000):
             self.send(self.ACTION_ANSWER, '')
             time.sleep(1)
             return self.receive(self.RESPONSE_ANSWER)
 
     def hangoff_call(self):
-        with Lock(self._name_resource(), 4000):
+        with Lock(self._name_resource(), 5000):
             self.send(self.ACTION_HANGOFF, '')
             time.sleep(1)
             return self.receive(self.RESPONSE_HANGOFF)
@@ -181,7 +177,7 @@ class GSMClient(I2CClient):
                 separators=(',', ':'))
             self.send(self.ACTION_SEND_SMS, body)
             time.sleep(2)
-            return self.receive(self.RESPONSE_SEND_SMS, 20)
+            return self.receive(self.RESPONSE_SEND_SMS, 30, 1)
 
     def get_sms(self, index):
         with Lock(self._name_resource(), 20000):
@@ -190,7 +186,7 @@ class GSMClient(I2CClient):
                 separators=(',', ':'))
             self.send(self.ACTION_GET_SMS, body)
             time.sleep(2.5)
-            return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ, 20)
+            return self.long_receive(self.GENERIC_WRITE, self.GENERIC_READ, 20, 1)
 
     def delete_sms(self):
         with Lock(self._name_resource(), 10000):
