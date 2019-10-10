@@ -2,7 +2,6 @@ from __future__ import absolute_import, unicode_literals
 import logging
 from celery import task
 
-from django.utils import timezone
 from datetime import datetime, timedelta
 
 from apps.devices.models import Device, LogAction, LogDevice
@@ -90,10 +89,12 @@ def execute_action(action_id):
 #
 @task()
 def check_pending_log_devices():
-    date = datetime.now() - timedelta(min=10)
+    date_ini = datetime.now() - timedelta(minutes=30)
+    date_from = datetime.now() - timedelta(minutes=10)
     logs = LogDevice.objects.filter(
         status__in=['INI', 'ERR'],
-        created_at__lte=date
+        created_at__gte=date_ini,
+        created_at__lte=date_from
     )
     time = 2
     for log in logs:
@@ -103,13 +104,17 @@ def check_pending_log_devices():
 
 @task()
 def check_pending_log_actions():
-    date = datetime.now() - timedelta(min=10)
+    date_ini = datetime.now() - timedelta(minutes=30)
+    date_from = datetime.now() - timedelta(minutes=10)
     logs = LogAction.objects.filter(
         status__in=['INI', 'ERR'],
-        created_at__lte=date
+        created_at__gte=date_ini,
+        created_at__lte=date_from
     )
+    time = 2
     for log in logs:
-        execute_action.apply_async([log.id], countdown=30)
+        execute_action.apply_async([log.id], countdown=10 + time)
+        time += 5
 
 
 #
