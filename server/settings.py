@@ -157,9 +157,9 @@ JWT_AUTH = {
 SECRET_KEY = APP_KEY
 
 # CELERY STUFF - WITH
-CELERY_BROKER_URL = 'redis+socket:///tmp/redis.sock'
-BROKER_URL = 'redis+socket:///tmp/redis.sock'
-CELERY_RESULT_BACKEND = 'redis+socket:///tmp/redis.sock'
+CELERY_BROKER_URL = 'redis+socket:///var/run/redis/redis.sock'
+BROKER_URL = 'redis+socket:///var/run/redis/redis.sock'
+CELERY_RESULT_BACKEND = 'redis+socket:///var/run/redis/redis.sock'
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -193,7 +193,7 @@ CELERY_BEAT_SCHEDULE = {
 
 REDIS_BLOCKER = [
     #{"host": "/tmp/redis.sock", "port": 0, "db": 1},
-    {"unix_socket_path": "/tmp/redis.sock", "db": 1}
+    {"unix_socket_path": "/var/run/redis/redis.sock", "db": 1}
 ]
 REDIS_BLOCKER_RETRY = 10
 REDIS_BLOCKER_DELAY = 500  # Nano Seconds
