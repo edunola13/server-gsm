@@ -53,7 +53,7 @@ class I2CClient():
                     time.sleep(interval)
                     continue
             except Exception:
-                logging.error("__part_receive body: %s" % (body))
+                logging.debug("__part_receive body: %s" % (body))
                 # No es una respuesta completa, eso quiere decir que esta bien
                 pass
             return part, of, body

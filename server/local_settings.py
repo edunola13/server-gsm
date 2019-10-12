@@ -35,7 +35,7 @@ DATABASES = {
 CELERY_BEAT_SCHEDULE = {
     'device-1': {
         'task': 'apps.devices.tasks.update_status',
-        'schedule': 60.0,  # 20 seconds
+        'schedule': 25.0,  # 20 seconds
         'args': (1,)  # ID of device
     },
     'device_check_new_sms-1': {

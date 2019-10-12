@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+import logging
 import json
 
 from apps.devices.models import LogDevice, LogAction
 from apps.devices.constants import (
     ORIGIN_RULE,
-    LOG_DEVICE_TYPE_SMS,
+    LOG_DEVICE_TYPE_SMS, LOG_DEVICE_TYPE_CALL,
     LOG_ACTION_TYPE_SMS, LOG_ACTION_STATUS_INI
 )
+
+logger = logging.getLogger('log_devices')
 
 
 class RuleStrategy():
@@ -76,8 +79,36 @@ class RuleStrategyRespondSms(RuleStrategy):
         action.launch_task()
 
 
+class RuleStrategyListenAndLog(RuleStrategy):
+    REQUIRED_DATA = {
+    }
+
+    @classmethod
+    def is_valid_description(cls, description):
+        return True
+
+    def _is_valid_event(self, event):
+        if event.log_type in [LOG_DEVICE_TYPE_SMS, LOG_DEVICE_TYPE_CALL]:
+            return True
+        return False
+
+    def _apply_rule(self, event):
+        from apps.rules.models import RuleInstance
+
+        logger.INFO("NEW {} FROM {}".format(event.log_type, event.number))
+
+        RuleInstance.objects.create(
+            rule=self.rule,
+            description=json.dumps(
+                {'data': "NEW {} FROM {}".format(event.log_type, event.number)}
+            ),
+            thrower=event
+        )
+
+
 STRATEGY_CLASS_DEV = {
-    'RES_SMS': RuleStrategyRespondSms
+    'RES_SMS': RuleStrategyRespondSms,
+    'LISTEN_LOG': RuleStrategyListenAndLog
 }
 STRATEGY_CLASS_ACT = {
 }

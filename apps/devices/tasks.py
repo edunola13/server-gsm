@@ -15,7 +15,7 @@ from server.redis_lock import Lock
 #
 # PERIODIC TASKS
 #
-@task()  # 15 Segs
+@task()  # 25 Segs
 def update_status(id):
     logging.info("UPDATE STATUS {}".format(id))
     # Acorto retry y delay para que basicamente

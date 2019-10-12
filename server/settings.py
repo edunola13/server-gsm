@@ -208,6 +208,12 @@ LOGGING = {
             'filename': '/tmp/debug.log',
             'formatter': 'verbose'
         },
+        'file_log': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': '/tmp/debug_log.log',
+            'formatter': 'verbose'
+        },
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose'
@@ -222,6 +228,11 @@ LOGGING = {
     'loggers': {
         '': {
             'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'log_devices': {
+            'handlers': ['file_log'],
             'level': 'DEBUG',
             'propagate': True,
         },
