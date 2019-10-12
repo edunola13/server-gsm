@@ -180,7 +180,7 @@ class GSMClient(I2CClient):
             return self.receive(self.RESPONSE_SEND_SMS, 30, 1)
 
     def get_sms(self, index):
-        with Lock(self._name_resource(), 20000):
+        with Lock(self._name_resource(), 30000):
             body = json.dumps(
                 {'i': index},
                 separators=(',', ':'))

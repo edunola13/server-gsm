@@ -3,7 +3,7 @@ import logging
 from celery import task
 
 from django.utils import timezone
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from apps.devices.models import Device, LogAction, LogDevice
 from apps.rules.models import Rule
@@ -71,6 +71,7 @@ def treat_log_device(action_id):
                 raise Exception("Status is not finish")
     except Exception as e:
         logging.error("TREAT_LOG_DEVICE action %d, error %s" % (action_id, e))
+        raise e
 
 
 @task(
@@ -88,6 +89,7 @@ def execute_action(action_id):
                 raise Exception("Status is not finish")
     except Exception as e:
         logging.error("EXECUTE_ACTION action %d, error %s" % (action_id, e))
+        raise e
 
 
 #
@@ -96,7 +98,7 @@ def execute_action(action_id):
 @task()
 def check_pending_log_devices():
     logging.info("CHECK PENDING LOGS")
-    date_ini = timezone.now() - timedelta(minutes=30)
+    date_ini = timezone.now() - timedelta(minutes=50)
     date_from = timezone.now() - timedelta(minutes=10)
     logs = LogDevice.objects.filter(
         status__in=['INI', 'ERR'],
@@ -112,7 +114,7 @@ def check_pending_log_devices():
 @task()
 def check_pending_log_actions():
     logging.info("CHECK PENDING ACTIONS")
-    date_ini = timezone.now() - timedelta(minutes=30)
+    date_ini = timezone.now() - timedelta(minutes=50)
     date_from = timezone.now() - timedelta(minutes=10)
     logs = LogAction.objects.filter(
         status__in=['INI', 'ERR'],
@@ -128,11 +130,7 @@ def check_pending_log_actions():
 #
 # EXECUTE RULES
 #
-@task(
-    max_retries=3,
-    default_retry_delay=2 * 60,
-    autoretry_for=(Exception,)
-)
+@task()
 def execute_rule_log_device(log_id):
     logging.info("EXECUTE ROLE LOG {}".format(log_id))
     log = LogDevice.objects.get(id=log_id)
@@ -149,11 +147,7 @@ def execute_rule_log_device(log_id):
             logging.error("EXECUTE_RULES log_device %d, error %s" % (log_id, e))
 
 
-@task(
-    max_retries=3,
-    default_retry_delay=2 * 60,
-    autoretry_for=(Exception,)
-)
+@task()
 def execute_rule_log_action(log_id):
     logging.info("EXECUTE ROLE ACTION {}".format(log_id))
     log = LogAction.objects.get(id=log_id)
