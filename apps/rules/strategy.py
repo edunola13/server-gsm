@@ -61,22 +61,30 @@ class RuleStrategyRespondSms(RuleStrategy):
         return True
 
     def _apply_rule(self, event):
-        from apps.rules.models import RuleInstance
-        data = json.loads(self.rule.description)
-        action = LogAction.create(
-            LOG_ACTION_TYPE_SMS,
-            self.rule.device,
-            ORIGIN_RULE,
-            LOG_ACTION_STATUS_INI,
-            event.number,
-            json.dumps({'msg': data['msg']})
-        )
-        RuleInstance.objects.create(
-            rule=self.rule,
-            description=json.dumps({'actions': [action.id]}),
-            thrower=event
-        )
-        action.launch_task()
+        try:
+            from apps.rules.models import RuleInstance
+            data = json.loads(self.rule.description)
+            action = LogAction.create(
+                LOG_ACTION_TYPE_SMS,
+                self.rule.device,
+                ORIGIN_RULE,
+                LOG_ACTION_STATUS_INI,
+                event.number,
+                json.dumps({'msg': data['msg']})
+            )
+            RuleInstance.objects.create(
+                rule=self.rule,
+                description=json.dumps({'actions': [action.id]}),
+                thrower=event
+            )
+            action.launch_task()
+        except Exception as e:
+            RuleInstance.objects.create(
+                rule=self.rule,
+                description=json.dumps({'data': e}),
+                is_ok=False,
+                thrower=event
+            )
 
 
 class RuleStrategyListenAndLog(RuleStrategy):
@@ -109,6 +117,7 @@ class RuleStrategyListenAndLog(RuleStrategy):
             RuleInstance.objects.create(
                 rule=self.rule,
                 description=json.dumps({'data': e}),
+                is_ok=False,
                 thrower=event
             )
 

@@ -52,6 +52,7 @@ class Rule (models.Model):
 
 class RuleInstance (models.Model):
     description = models.TextField(null=True)  # Info de ejecucion
+    is_ok = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     rule = models.ForeignKey(Rule, on_delete=models.PROTECT,)

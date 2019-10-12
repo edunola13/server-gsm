@@ -60,6 +60,6 @@ class RuleInstanceViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
     queryset = RuleInstance.objects.all()
     serializer_class = RuleInstanceSerializer
 
-    filter_fields = ('rule', 'rule__rule_type', 'created_at')
+    filter_fields = ('is_ok', 'rule', 'rule__rule_type', 'created_at')
     ordering_fields = ('rule__rule_type', 'created_at')
     ordering = 'created_at'
