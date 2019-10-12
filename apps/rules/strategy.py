@@ -93,17 +93,24 @@ class RuleStrategyListenAndLog(RuleStrategy):
         return False
 
     def _apply_rule(self, event):
-        from apps.rules.models import RuleInstance
+        try:
+            from apps.rules.models import RuleInstance
 
-        logger.INFO("NEW {} FROM {}".format(event.log_type, event.number))
+            logger.info("NEW {} FROM {}".format(event.log_type, event.number))
 
-        RuleInstance.objects.create(
-            rule=self.rule,
-            description=json.dumps(
-                {'data': "NEW {} FROM {}".format(event.log_type, event.number)}
-            ),
-            thrower=event
-        )
+            RuleInstance.objects.create(
+                rule=self.rule,
+                description=json.dumps(
+                    {'data': "NEW {} FROM {}".format(event.log_type, event.number)}
+                ),
+                thrower=event
+            )
+        except Exception as e:
+            RuleInstance.objects.create(
+                rule=self.rule,
+                description=json.dumps({'data': e}),
+                thrower=event
+            )
 
 
 STRATEGY_CLASS_DEV = {
