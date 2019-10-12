@@ -2,6 +2,7 @@ from __future__ import absolute_import, unicode_literals
 import logging
 from celery import task
 
+from django.utils import timezone
 from datetime import datetime, timedelta
 
 from apps.devices.models import Device, LogAction, LogDevice
@@ -16,6 +17,7 @@ from server.redis_lock import Lock
 #
 @task()  # 15 Segs
 def update_status(id):
+    logging.info("UPDATE STATUS {}".format(id))
     # Acorto retry y delay para que basicamente
     # ignoremos la task asi no se apilan
     try:
@@ -28,6 +30,7 @@ def update_status(id):
 
 @task()  # 5 Mins / No ejecutar al mismo tiempo que update_status
 def check_new_sms(id):
+    logging.info("CHECK NEW SMS {}".format(id))
     try:
         with Lock('TASK_DEVICE_ID_%d' % id, 60000):
             device = Device.objects.get(id=id)
@@ -41,6 +44,7 @@ def delete_sms(id):
     #
     # MAXIMO DE SMS = 30, DESPUES GUARDA EN OTROS LADOS
     #
+    logging.info("DELETE SMS {}".format(id))
     try:
         with Lock('TASK_DEVICE_ID_%d' % id, 60000):
             device = Device.objects.get(id=id)
@@ -58,6 +62,7 @@ def delete_sms(id):
     autoretry_for=(Exception,)
 )
 def treat_log_device(action_id):
+    logging.info("TREAT LOG DEVICE {}".format(action_id))
     try:
         log = LogDevice.objects.get(id=action_id)
         if log.can_treat():
@@ -74,6 +79,7 @@ def treat_log_device(action_id):
     autoretry_for=(Exception,)
 )
 def execute_action(action_id):
+    logging.info("EXECUTE ACTION {}".format(action_id))
     try:
         action = LogAction.objects.get(id=action_id)
         if action.can_execute():
@@ -89,8 +95,9 @@ def execute_action(action_id):
 #
 @task()
 def check_pending_log_devices():
-    date_ini = datetime.now() - timedelta(minutes=30)
-    date_from = datetime.now() - timedelta(minutes=10)
+    logging.info("CHECK PENDING LOGS")
+    date_ini = timezone.now() - timedelta(minutes=30)
+    date_from = timezone.now() - timedelta(minutes=10)
     logs = LogDevice.objects.filter(
         status__in=['INI', 'ERR'],
         created_at__gte=date_ini,
@@ -104,8 +111,9 @@ def check_pending_log_devices():
 
 @task()
 def check_pending_log_actions():
-    date_ini = datetime.now() - timedelta(minutes=30)
-    date_from = datetime.now() - timedelta(minutes=10)
+    logging.info("CHECK PENDING ACTIONS")
+    date_ini = timezone.now() - timedelta(minutes=30)
+    date_from = timezone.now() - timedelta(minutes=10)
     logs = LogAction.objects.filter(
         status__in=['INI', 'ERR'],
         created_at__gte=date_ini,
@@ -126,6 +134,7 @@ def check_pending_log_actions():
     autoretry_for=(Exception,)
 )
 def execute_rule_log_device(log_id):
+    logging.info("EXECUTE ROLE LOG {}".format(log_id))
     log = LogDevice.objects.get(id=log_id)
 
     rules = Rule.objects.filter(
@@ -146,6 +155,7 @@ def execute_rule_log_device(log_id):
     autoretry_for=(Exception,)
 )
 def execute_rule_log_action(log_id):
+    logging.info("EXECUTE ROLE ACTION {}".format(log_id))
     log = LogAction.objects.get(id=log_id)
 
     rules = Rule.objects.filter(

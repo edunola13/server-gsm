@@ -70,24 +70,28 @@ class Device (models.Model):
                 status.get('n', None)
             )
 
-        if status.get('m') == 1:
+        if status.get('m') == 1 and int(status.get('i', 0)) != 0:
             new_index = int(status.get('i', 1))
             if new_index > self.index_sms:
+                time = 2
                 for i in range(self.index_sms + 1, new_index + 1):
                     log = LogDevice.create(
                         LOG_DEVICE_TYPE_NEWSMS,
                         self,
                         description=json.dumps({'index': str(i)})
                     )
-                    log.launch_task()
+                    log.launch_task(time)
+                    time += 3
             if new_index < self.index_sms:
+                time = 2
                 for i in range(1, new_index + 1):
                     log = LogDevice.create(
                         LOG_DEVICE_TYPE_NEWSMS,
                         self,
                         description=json.dumps({'index': str(i)})
                     )
-                    log.launch_task()
+                    log.launch_task(time)
+                    time += 3
             self.index_sms = new_index
             self.save()
 
@@ -97,6 +101,7 @@ class Device (models.Model):
     def check_new_sms(self):
         gsm = self._get_client()
         index = self.index_sms + 1
+        time = 2
         for i in range(25):  # Leo maximo X mensajes en un tasks
             sms = gsm.get_sms(str(index))
             if sms.get('s', None) == 'error':
@@ -111,7 +116,8 @@ class Device (models.Model):
                 )
                 self.index_sms = index
                 self.save()
-                log.launch_task()
+                log.launch_task(time)
+                time += 3
             index += 1
 
     def delete_sms(self):
