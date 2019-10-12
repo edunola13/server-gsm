@@ -108,7 +108,7 @@ class RuleStrategyListenAndLog(RuleStrategy):
 
 STRATEGY_CLASS_DEV = {
     'RES_SMS': RuleStrategyRespondSms,
-    'LISTEN_LOG': RuleStrategyListenAndLog
+    'LIS_LOG': RuleStrategyListenAndLog
 }
 STRATEGY_CLASS_ACT = {
 }
