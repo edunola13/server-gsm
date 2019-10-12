@@ -95,7 +95,7 @@ class Device (models.Model):
             self.index_sms = new_index
             self.save()
 
-        if new_index > 11:
+        if self.index_sms > 11:
             self.launch_delete_sms(10)
 
     def check_new_sms(self):
