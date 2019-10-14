@@ -11,3 +11,6 @@ env
 
 /server/secrets.py
 /server/local_settings.py
+
+awesome.sock
+celerybeat.pid
