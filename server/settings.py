@@ -151,7 +151,9 @@ REST_FRAMEWORK = {
 JWT_AUTH = {
     'JWT_AUTH_HEADER_PREFIX': 'JWT',
     'JWT_AUTH_COOKIE': 'JWT',
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(seconds=3600)
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(minutes=60),
+    'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=7),
+    'JWT_ALLOW_REFRESH': True,
 }
 
 SECRET_KEY = APP_KEY

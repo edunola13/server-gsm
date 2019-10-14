@@ -20,3 +20,5 @@ redlock>=1.2.0
 
 # smbus -> Is Old
 smbus2
+
+gunicorn

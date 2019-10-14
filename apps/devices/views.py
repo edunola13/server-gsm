@@ -22,7 +22,7 @@ from apps.devices.constants import ORIGIN_API
 
 
 class DeviceViewSet(viewsets.ModelViewSet):
-    permission_classes = ()  # (IsAdminUser,)
+    permission_classes = (IsAdminUser,)
 
     queryset = Device.objects.all()
     serializer_class = DeviceSerializer
@@ -51,7 +51,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
     @action(methods=['get'], detail=True)
     def rules(self, request, pk=None):
-        rules = Rule.objects.filter(device__id=pk)
+        rules = Rule.objects.filter(device__id=pk).order_by('name')
 
         page = self.paginate_queryset(rules)
         serializer = RuleSerializer(page, many=True)
@@ -59,7 +59,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
     @action(methods=['get'], detail=True)
     def rules_instances(self, request, pk=None):
-        instances = RuleInstance.objects.filter(rule__device__id=pk)
+        instances = RuleInstance.objects.filter(rule__device__id=pk).order_by('-created_at')
 
         page = self.paginate_queryset(instances)
         serializer = RuleInstanceSerializer(page, many=True)
@@ -67,7 +67,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
 
 class LogDeviceViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
-    permission_classes = ()  # (IsAdminUser,)
+    permission_classes = (IsAdminUser,)
 
     queryset = LogDevice.objects.all()
     serializer_class = LogDeviceSerializer
@@ -76,7 +76,7 @@ class LogDeviceViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
     filter_fields = __basic_fields + ('status', 'log_type', 'date_ok', 'created_at')
     search_fields = __basic_fields
     ordering_fields = __basic_fields + ('date_ok', 'created_at',)
-    ordering = 'created_at'
+    ordering = '-created_at'
 
     @action(methods=['put'], detail=True)
     def change_status(self, request, pk=None):
@@ -113,7 +113,7 @@ class LogDeviceViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
 
 
 class LogActionViewSet(viewsets.ModelViewSet):
-    permission_classes = ()  # (IsAdminUser,)
+    permission_classes = (IsAdminUser,)
 
     queryset = LogAction.objects.all()
     serializer_class = LogActionSerializer
@@ -122,7 +122,7 @@ class LogActionViewSet(viewsets.ModelViewSet):
     filter_fields = __basic_fields + ('origin', 'status', 'log_type', 'date_ok', 'created_at')
     search_fields = __basic_fields
     ordering_fields = __basic_fields + ('date_ok', 'created_at',)
-    ordering = 'created_at'
+    ordering = '-created_at'
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:

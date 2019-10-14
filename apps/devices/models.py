@@ -103,6 +103,7 @@ class Device (models.Model):
         index = self.index_sms + 1
         time = 2
         for i in range(1, 25):  # Leo maximo X mensajes en un tasks
+            # No usar variable "i"
             sms = gsm.get_sms(str(index))
             if sms.get('s', None) == 'error':
                 break
@@ -112,7 +113,7 @@ class Device (models.Model):
                 log = LogDevice.create(
                     LOG_DEVICE_TYPE_NEWSMS,
                     self,
-                    description=json.dumps({'index': str(i)})
+                    description=json.dumps({'index': str(index)})
                 )
                 self.index_sms = index
                 self.save()

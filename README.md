@@ -13,11 +13,11 @@ Conviene usar un docker
 # Celery
 https://medium.com/@yedjoe/celery-4-periodic-task-in-django-9f6b5a8c21c7
 """
-For dev: celery -A proj worker -l info -B
+For dev: celery -A server worker -l info -B
 """
 
 """
 For prod: 
-celery -A proj worker -l info
-celery -A proj beat -l info
+celery -A server worker -l info
+celery -A server beat -l info
 """

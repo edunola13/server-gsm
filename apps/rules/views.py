@@ -14,7 +14,7 @@ from apps.rules.serializers import (
 
 
 class RuleViewSet(viewsets.ModelViewSet):
-    permission_classes = ()  # (IsAdminUser,)
+    permission_classes = (IsAdminUser,)
 
     queryset = Rule.objects.all()
     serializer_class = RuleSerializer
@@ -23,7 +23,7 @@ class RuleViewSet(viewsets.ModelViewSet):
     filter_fields = __basic_fields + ('strategy', 'rule_type', 'enabled', 'device', 'created_at')
     search_fields = __basic_fields
     ordering_fields = __basic_fields + ('strategy', 'created_at')
-    ordering = 'created_at'
+    ordering = 'name'
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -55,11 +55,11 @@ class RuleViewSet(viewsets.ModelViewSet):
 
 
 class RuleInstanceViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
-    permission_classes = ()  # (IsAdminUser,)
+    permission_classes = (IsAdminUser,)
 
     queryset = RuleInstance.objects.all()
     serializer_class = RuleInstanceSerializer
 
     filter_fields = ('is_ok', 'rule', 'rule__rule_type', 'created_at')
     ordering_fields = ('rule__rule_type', 'created_at')
-    ordering = 'created_at'
+    ordering = '-created_at'
